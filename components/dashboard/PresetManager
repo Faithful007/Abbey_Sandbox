@@ -1,0 +1,305 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Save, Trash2, Download, Loader2, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+
+export default function PresetManager({ open, onClose, currentConfig, onApplyPreset }) {
+  const [presets, setPresets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    if (open) {
+      loadPresets();
+    }
+  }, [open]);
+
+  const loadPresets = async () => {
+    setLoading(true);
+    try {
+      const currentUser = await base44.auth.me();
+      setUser(currentUser);
+      setPresets(currentUser.chart_presets || []);
+    } catch (error) {
+      console.error("Error loading presets:", error);
+      toast.error("Failed to load presets");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePreset = async () => {
+    if (!presetName.trim()) {
+      toast.error("Please enter a preset name");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const newPreset = {
+        id: Date.now().toString(),
+        name: presetName.trim(),
+        chartConfig: currentConfig.chartConfig,
+        dataFilter: currentConfig.dataFilter,
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedPresets = [...presets, newPreset];
+      
+      await base44.auth.updateMe({
+        chart_presets: updatedPresets
+      });
+
+      setPresets(updatedPresets);
+      setPresetName("");
+      toast.success(`Preset "${newPreset.name}" saved successfully!`);
+    } catch (error) {
+      console.error("Error saving preset:", error);
+      toast.error("Failed to save preset");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeletePreset = async (presetId) => {
+    try {
+      const updatedPresets = presets.filter(p => p.id !== presetId);
+      
+      await base44.auth.updateMe({
+        chart_presets: updatedPresets
+      });
+
+      setPresets(updatedPresets);
+      toast.success("Preset deleted successfully");
+    } catch (error) {
+      console.error("Error deleting preset:", error);
+      toast.error("Failed to delete preset");
+    }
+  };
+
+  const handleApplyPreset = (preset) => {
+    onApplyPreset(preset);
+    toast.success(`Applied preset: ${preset.name}`);
+    onClose();
+  };
+
+  const getChartTypeLabel = (type) => {
+    const labels = {
+      line: 'Line Chart',
+      bar: 'Bar Chart',
+      area: 'Area Chart',
+      scatter: 'Scatter Plot',
+      boxplot: 'Box Plot'
+    };
+    return labels[type] || type;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-2xl">
+            <Sparkles className="w-6 h-6 text-indigo-600" />
+            Chart Presets
+          </DialogTitle>
+          <DialogDescription>
+            Save your current chart configuration or apply a saved preset
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 mt-4">
+          {/* Save Current Configuration */}
+          <Card className="border-2 border-indigo-100 bg-indigo-50/50">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <Save className="w-5 h-5 text-indigo-600" />
+                Save Current Configuration
+              </h3>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="bg-white rounded-lg p-3">
+                    <span className="text-slate-500 block mb-1">Chart Type</span>
+                    <span className="font-semibold text-slate-900">
+                      {getChartTypeLabel(currentConfig.chartConfig.type)}
+                    </span>
+                  </div>
+                  <div className="bg-white rounded-lg p-3">
+                    <span className="text-slate-500 block mb-1">Primary Variable</span>
+                    <span className="font-semibold text-slate-900 capitalize">
+                      {currentConfig.chartConfig.primaryColumn.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <div className="bg-white rounded-lg p-3">
+                    <span className="text-slate-500 block mb-1">Color</span>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-6 h-6 rounded border border-slate-300"
+                        style={{ backgroundColor: currentConfig.chartConfig.color }}
+                      />
+                      <span className="font-mono text-xs text-slate-600">
+                        {currentConfig.chartConfig.color}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3">
+                    <span className="text-slate-500 block mb-1">Settings</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {currentConfig.chartConfig.showTrendline && (
+                        <Badge variant="secondary" className="text-xs">Trendline</Badge>
+                      )}
+                      {currentConfig.chartConfig.showGrid && (
+                        <Badge variant="secondary" className="text-xs">Grid</Badge>
+                      )}
+                      {currentConfig.dataFilter.enabled && (
+                        <Badge variant="secondary" className="text-xs">Filtered</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter preset name (e.g., Sales Trend View)"
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSavePreset()}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={handleSavePreset}
+                    disabled={saving || !presetName.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-700 gap-2"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        Save Preset
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Saved Presets */}
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
+              Saved Presets ({presets.length})
+            </h3>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+              </div>
+            ) : presets.length === 0 ? (
+              <Card className="border-2 border-dashed border-slate-200">
+                <CardContent className="p-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                    <Save className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 mb-2">No presets saved yet</p>
+                  <p className="text-sm text-slate-400">
+                    Save your first configuration to quickly apply it to future analyses
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {presets.map((preset) => (
+                  <Card 
+                    key={preset.id}
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h4 className="font-semibold text-slate-900 text-lg">
+                              {preset.name}
+                            </h4>
+                            <div 
+                              className="w-5 h-5 rounded border border-slate-300"
+                              style={{ backgroundColor: preset.chartConfig.color }}
+                              title={`Color: ${preset.chartConfig.color}`}
+                            />
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            <Badge variant="outline" className="bg-white">
+                              {getChartTypeLabel(preset.chartConfig.type)}
+                            </Badge>
+                            <Badge variant="outline" className="bg-white capitalize">
+                              {preset.chartConfig.primaryColumn.replace(/_/g, ' ')}
+                            </Badge>
+                            {preset.chartConfig.type === 'scatter' && (
+                              <Badge variant="outline" className="bg-white capitalize">
+                                vs {preset.chartConfig.secondaryColumn.replace(/_/g, ' ')}
+                              </Badge>
+                            )}
+                            {preset.chartConfig.showTrendline && (
+                              <Badge variant="secondary">Trendline</Badge>
+                            )}
+                            {preset.dataFilter.enabled && (
+                              <Badge variant="secondary">
+                                Filtered ({preset.dataFilter.minIndex}-{preset.dataFilter.maxIndex})
+                              </Badge>
+                            )}
+                          </div>
+
+                          <p className="text-xs text-slate-500">
+                            Created: {new Date(preset.createdAt).toLocaleDateString()} at {new Date(preset.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleApplyPreset(preset)}
+                            className="gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            Apply
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeletePreset(preset.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
