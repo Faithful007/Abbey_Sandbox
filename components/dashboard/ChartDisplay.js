@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { RotateCcw, TrendingUp, Save } from "lucide-react";
+import BoxPlot from "./Plots";
+import PresetManager from "./PresetManager";
 import BoxPlot from "./Plots";
 import { 
   Select,
