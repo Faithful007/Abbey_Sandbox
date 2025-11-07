@@ -4,6 +4,7 @@ node_modules/
 dist/
 build/
 coverage/
+server/db.js
 # env & secrets
 .env
 .env.*.local
