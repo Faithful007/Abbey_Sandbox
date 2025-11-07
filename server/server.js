@@ -1,37 +1,68 @@
-// server/server.js
-require('dotenv').config();
 const express = require('express');
-const multer  = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
 
 const app = express();
 
-// ensure upload dir exists
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+// Middleware
+app.use(cors());
+app.use(helmet());
+app.use(morgan('dev'));
+app.use(express.json());
 
-// configure multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
-});
-const upload = multer({ storage });
-
-// POST /upload with field name 'file'
-app.post('/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  res.json({
-    ok: true,
-    field: 'file',
-    savedAs: req.file.filename,
-    size: req.file.size,
-    path: req.file.path
-  });
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Upload server running on http://localhost:${PORT}`));
+// For testing, we need to export the app
+module.exports = app;
+
+// Start server only if running directly
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+// // server/server.js
+// require('dotenv').config();
+// const express = require('express');
+// const multer  = require('multer');
+// const path = require('path');
+// const fs = require('fs');
+
+// const app = express();
+
+// // ensure upload dir exists
+// const uploadDir = path.join(__dirname, 'uploads');
+// if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+// // configure multer
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => cb(null, uploadDir),
+//   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
+// });
+// const upload = multer({ storage });
+
+// // POST /upload with field name 'file'
+// app.post('/upload', upload.single('file'), (req, res) => {
+//   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+//   res.json({
+//     ok: true,
+//     field: 'file',
+//     savedAs: req.file.filename,
+//     size: req.file.size,
+//     path: req.file.path
+//   });
+// });
+
+// const PORT = process.env.PORT || 4000;
+// app.listen(PORT, () => console.log(`Upload server running on http://localhost:${PORT}`));
+
+
 
 // // server/server.js
 // require('dotenv').config();
