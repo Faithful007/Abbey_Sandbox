@@ -1,6 +1,6 @@
 (globalThis.TURBOPACK || (globalThis.TURBOPACK = [])).push([
     typeof document === "object" ? document.currentScript : undefined,
-    {"otherChunks":["static/chunks/[root-of-the-server]__96aa16a6._.js","static/chunks/node_modules_next_dist_compiled_693c7264._.js","static/chunks/node_modules_next_dist_shared_lib_49f863e2._.js","static/chunks/node_modules_next_dist_client_d0aa886c._.js","static/chunks/node_modules_next_dist_a1eb637b._.js","static/chunks/node_modules_react-dom_4411d9bd._.js","static/chunks/node_modules_recharts_es6_e1844211._.js","static/chunks/node_modules_e3b337a5._.js"],"runtimeModuleIds":["[project]/node_modules/next/dist/compiled/@next/react-refresh-utils/dist/runtime.js [client] (ecmascript)","[project]/node_modules/next/dist/client/next-dev-turbopack.js [client] (ecmascript)","[hmr-entry]/hmr-entry.js { ENTRY => \"[project]/pages/dashboard/index.jsx\" }"]}
+    {"otherChunks":["static/chunks/[root-of-the-server]__26a97472._.js","static/chunks/node_modules_next_dist_compiled_693c7264._.js","static/chunks/node_modules_next_dist_shared_lib_49f863e2._.js","static/chunks/node_modules_next_dist_client_d0aa886c._.js","static/chunks/node_modules_next_dist_a1eb637b._.js","static/chunks/node_modules_react-dom_4411d9bd._.js","static/chunks/node_modules_recharts_es6_e1844211._.js","static/chunks/node_modules_e3b337a5._.js"],"runtimeModuleIds":["[project]/node_modules/next/dist/compiled/@next/react-refresh-utils/dist/runtime.js [client] (ecmascript)","[project]/node_modules/next/dist/client/next-dev-turbopack.js [client] (ecmascript)","[hmr-entry]/hmr-entry.js { ENTRY => \"[project]/pages/dashboard/index.jsx\" }"]}
 ]);
 (() => {
 if (!Array.isArray(globalThis.TURBOPACK)) {
@@ -1833,4 +1833,4 @@ chunkListsToRegister.forEach(registerChunkList);
 })();
 
 
-//# sourceMappingURL=pages_dashboard_index_jsx_d0146ab2._.js.map
+//# sourceMappingURL=pages_dashboard_index_jsx_5aab25dd._.js.map
