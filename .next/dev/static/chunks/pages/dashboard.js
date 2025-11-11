@@ -1,12 +1,21 @@
 __turbopack_load_page_chunks__("/dashboard", [
+  "static/chunks/node_modules_a4c9c887._.js",
   "static/chunks/[root-of-the-server]__26a97472._.js",
   "static/chunks/node_modules_next_dist_compiled_693c7264._.js",
   "static/chunks/node_modules_next_dist_shared_lib_49f863e2._.js",
   "static/chunks/node_modules_next_dist_client_d0aa886c._.js",
   "static/chunks/node_modules_next_dist_a1eb637b._.js",
   "static/chunks/node_modules_react-dom_4411d9bd._.js",
-  "static/chunks/node_modules_recharts_es6_e1844211._.js",
-  "static/chunks/node_modules_e3b337a5._.js",
+  "static/chunks/node_modules_recharts_es6_util_93a3c576._.js",
+  "static/chunks/node_modules_recharts_es6_state_54816366._.js",
+  "static/chunks/node_modules_recharts_es6_component_44c4daa1._.js",
+  "static/chunks/node_modules_recharts_es6_cartesian_64d3b903._.js",
+  "static/chunks/node_modules_recharts_es6_cbfa7a23._.js",
+  "static/chunks/node_modules_pako_dist_pako_esm_mjs_ce1ea67d._.js",
+  "static/chunks/node_modules_jspdf_dist_jspdf_es_min_32a1d50f.js",
+  "static/chunks/node_modules_html2canvas_dist_html2canvas_c5f8e195.js",
+  "static/chunks/node_modules_xlsx_xlsx_mjs_6addffd6._.js",
+  "static/chunks/node_modules_f26d05c5._.js",
   "static/chunks/pages_dashboard_index_jsx_2da965e7._.js",
-  "static/chunks/turbopack-pages_dashboard_index_jsx_5aab25dd._.js"
+  "static/chunks/turbopack-pages_dashboard_index_jsx_6761b77f._.js"
 ])

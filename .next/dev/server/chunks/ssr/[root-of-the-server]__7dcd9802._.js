@@ -13,6 +13,7 @@ __turbopack_context__.s([
     ()=>ColumnDistributionChart
 ]);
 var __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__ = __turbopack_context__.i("[externals]/react/jsx-dev-runtime [external] (react/jsx-dev-runtime, cjs)");
+// Interactive chart component for visualizing and editing column data distributions
 var __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__ = __turbopack_context__.i("[externals]/react [external] (react, cjs)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$chart$2f$BarChart$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/recharts/es6/chart/BarChart.js [ssr] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$Bar$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/recharts/es6/cartesian/Bar.js [ssr] (ecmascript)");
@@ -32,6 +33,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$
 ;
 ;
 ;
+// Color palette for pie chart segments
 const PIE_COLORS = [
     "#6366f1",
     "#10b981",
@@ -40,16 +42,27 @@ const PIE_COLORS = [
     "#8b5cf6",
     "#14b8a6"
 ];
-function isNum(s) {
+/**
+ * Check if a value is numeric
+ * @param {any} s - Value to check
+ * @returns {boolean} - True if numeric
+ */ function isNum(s) {
     if (!s && s !== 0) return false;
     const n = parseFloat(String(s));
     return !isNaN(n) && isFinite(n);
 }
-function buildHistogram(values, bins = 10) {
+/**
+ * Build histogram data by grouping values into bins
+ * @param {Array} values - Array of values
+ * @param {number} bins - Number of bins to create
+ * @returns {Array} - Histogram data with bin ranges and counts
+ */ function buildHistogram(values, bins = 10) {
+    // Filter to only numeric values
     const nums = values.filter(isNum).map((v)=>parseFloat(v));
     if (nums.length === 0) return [];
     const min = Math.min(...nums);
     const max = Math.max(...nums);
+    // Handle case where all values are the same
     if (min === max) return [
         {
             name: String(min),
@@ -58,19 +71,23 @@ function buildHistogram(values, bins = 10) {
             binEnd: max
         }
     ];
+    // Calculate bin width
     const width = (max - min) / bins;
+    // Initialize bins with metadata
     const buckets = Array(bins).fill(null).map((_, i)=>({
             binStart: min + i * width,
             binEnd: min + (i + 1) * width,
             count: 0,
-            indices: []
+            indices: [] // Track which rows belong to this bin
         }));
+    // Assign each value to a bin
     nums.forEach((n, idx)=>{
         let binIdx = Math.floor((n - min) / width);
-        if (binIdx >= bins) binIdx = bins - 1;
+        if (binIdx >= bins) binIdx = bins - 1; // Handle edge case
         buckets[binIdx].count++;
         buckets[binIdx].indices.push(idx);
     });
+    // Format for chart display
     return buckets.map((bucket, i)=>({
             name: `${bucket.binStart.toFixed(1)}`,
             count: bucket.count,
@@ -79,8 +96,14 @@ function buildHistogram(values, bins = 10) {
             indices: bucket.indices
         }));
 }
-function buildCategorical(values, maxCategories = 10) {
+/**
+ * Build categorical data by counting unique values
+ * @param {Array} values - Array of values
+ * @param {number} maxCategories - Maximum categories to show
+ * @returns {Array} - Category data with counts
+ */ function buildCategorical(values, maxCategories = 10) {
     const counts = new Map();
+    // Count occurrences of each value
     values.forEach((v, idx)=>{
         const key = v === null || v === undefined || v === "" ? "(empty)" : String(v);
         if (!counts.has(key)) {
@@ -92,6 +115,7 @@ function buildCategorical(values, maxCategories = 10) {
         counts.get(key).count++;
         counts.get(key).indices.push(idx);
     });
+    // Sort by count and limit to top categories
     const sorted = Array.from(counts.entries()).sort((a, b)=>b[1].count - a[1].count).slice(0, maxCategories);
     return sorted.map(([name, data])=>({
             name,
@@ -99,7 +123,12 @@ function buildCategorical(values, maxCategories = 10) {
             indices: data.indices
         }));
 }
-function buildScatter(values, pointSize = 5) {
+/**
+ * Build scatter plot data
+ * @param {Array} values - Array of values
+ * @param {number} pointSize - Size of scatter points
+ * @returns {Array} - Scatter data with x, y coordinates
+ */ function buildScatter(values, pointSize = 5) {
     return values.map((v, i)=>({
             x: i,
             y: isNum(v) ? parseFloat(v) : null,
@@ -108,6 +137,7 @@ function buildScatter(values, pointSize = 5) {
         })).filter((p)=>p.y !== null);
 }
 function ColumnDistributionChart({ header, values, onValueChange }) {
+    // State for chart configuration
     const [chartType, setChartType] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])("histogram");
     const [bins, setBins] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(10);
     const [maxCategories, setMaxCategories] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(10);
@@ -115,13 +145,14 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
     const [barWidth, setBarWidth] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(20);
     const [lineWidth, setLineWidth] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(2);
     const [pieRadius, setPieRadius] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(80);
-    const [draggedItem, setDraggedItem] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(null);
+    // Determine if column is numeric (>50% numeric values)
     const isNumeric = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useMemo"])(()=>{
         const sample = values.slice(0, 100);
         return sample.filter(isNum).length / sample.length > 0.5;
     }, [
         values
     ]);
+    // Build chart data based on type and settings
     const data = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useMemo"])(()=>{
         if (chartType === "scatter") return buildScatter(values, pointSize);
         if (isNumeric) return buildHistogram(values, bins);
@@ -134,10 +165,13 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
         maxCategories,
         pointSize
     ]);
-    // Handle bar click to enable editing
-    const handleBarClick = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useCallback"])((data, index)=>{
+    /**
+   * Handle bar/category click for editing
+   * Allows editing all values in a bin/category at once
+   */ const handleBarClick = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useCallback"])((data, index)=>{
         if (!data || !data.indices) return;
         const newValue = prompt(`Edit value for ${data.name}\nCurrent count: ${data.count}\nEnter new value for all ${data.count} items:`, data.indices.length > 0 ? values[data.indices[0]] : "");
+        // Apply new value to all rows in this category/bin
         if (newValue !== null && onValueChange) {
             data.indices.forEach((idx)=>{
                 onValueChange(idx, newValue);
@@ -147,8 +181,9 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
         values,
         onValueChange
     ]);
-    // Handle scatter point drag
-    const handleScatterClick = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useCallback"])((data)=>{
+    /**
+   * Handle scatter point click for editing individual values
+   */ const handleScatterClick = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useCallback"])((data)=>{
         if (!data || data.index === undefined) return;
         const newValue = prompt(`Edit value at row ${data.index}\nCurrent value: ${data.y}`, data.y);
         if (newValue !== null && onValueChange) {
@@ -157,6 +192,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
     }, [
         onValueChange
     ]);
+    // Show empty state if no data
     if (!data || data.length === 0) {
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
             className: "border rounded p-4 bg-white",
@@ -166,7 +202,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                     children: header
                 }, void 0, false, {
                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                    lineNumber: 141,
+                    lineNumber: 201,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -174,17 +210,19 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                     children: "No data"
                 }, void 0, false, {
                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                    lineNumber: 142,
+                    lineNumber: 202,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/components/ColumnDistributionChart.jsx",
-            lineNumber: 140,
+            lineNumber: 200,
             columnNumber: 7
         }, this);
     }
-    const CustomBar = (props)=>{
+    /**
+   * Custom Bar component with click interaction
+   */ const CustomBar = (props)=>{
         const { x, y, width, height, fill, payload, index } = props;
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("g", {
             children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("rect", {
@@ -201,16 +239,18 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                 onMouseLeave: (e)=>e.target.style.opacity = 1
             }, void 0, false, {
                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                lineNumber: 151,
+                lineNumber: 214,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/components/ColumnDistributionChart.jsx",
-            lineNumber: 150,
+            lineNumber: 213,
             columnNumber: 7
         }, this);
     };
-    const CustomDot = (props)=>{
+    /**
+   * Custom Dot component for scatter plots with click interaction
+   */ const CustomDot = (props)=>{
         const { cx, cy, payload } = props;
         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("circle", {
             cx: cx,
@@ -225,7 +265,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
             onMouseLeave: (e)=>e.target.setAttribute('r', pointSize)
         }, void 0, false, {
             fileName: "[project]/components/ColumnDistributionChart.jsx",
-            lineNumber: 169,
+            lineNumber: 235,
             columnNumber: 7
         }, this);
     };
@@ -240,7 +280,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                         children: header
                     }, void 0, false, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 185,
+                        lineNumber: 252,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("select", {
@@ -253,7 +293,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 children: "Histogram"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 187,
+                                lineNumber: 254,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("option", {
@@ -261,7 +301,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 children: "Bar"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 188,
+                                lineNumber: 255,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("option", {
@@ -269,7 +309,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 children: "Line"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 189,
+                                lineNumber: 256,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("option", {
@@ -277,7 +317,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 children: "Pie"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 190,
+                                lineNumber: 257,
                                 columnNumber: 11
                             }, this),
                             isNumeric && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("option", {
@@ -285,19 +325,19 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 children: "Scatter"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 191,
+                                lineNumber: 258,
                                 columnNumber: 25
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 186,
+                        lineNumber: 253,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                lineNumber: 184,
+                lineNumber: 251,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -309,7 +349,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                lineNumber: 195,
+                lineNumber: 263,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -328,7 +368,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 className: "w-20"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 203,
+                                lineNumber: 273,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -336,13 +376,13 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 children: bins
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 204,
+                                lineNumber: 274,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 201,
+                        lineNumber: 271,
                         columnNumber: 11
                     }, this),
                     !isNumeric && (chartType === "bar" || chartType === "line" || chartType === "pie") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("label", {
@@ -358,7 +398,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 className: "w-20"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 211,
+                                lineNumber: 282,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -366,13 +406,13 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 children: maxCategories
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 212,
+                                lineNumber: 283,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 209,
+                        lineNumber: 280,
                         columnNumber: 11
                     }, this),
                     (chartType === "histogram" || chartType === "bar") && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("label", {
@@ -388,7 +428,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 className: "w-20"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 219,
+                                lineNumber: 291,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -399,13 +439,13 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 220,
+                                lineNumber: 292,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 217,
+                        lineNumber: 289,
                         columnNumber: 11
                     }, this),
                     chartType === "line" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("label", {
@@ -421,7 +461,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 className: "w-20"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 227,
+                                lineNumber: 300,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -432,13 +472,13 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 228,
+                                lineNumber: 301,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 225,
+                        lineNumber: 298,
                         columnNumber: 11
                     }, this),
                     chartType === "pie" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("label", {
@@ -454,7 +494,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 className: "w-20"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 235,
+                                lineNumber: 309,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -465,13 +505,13 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 236,
+                                lineNumber: 310,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 233,
+                        lineNumber: 307,
                         columnNumber: 11
                     }, this),
                     chartType === "scatter" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("label", {
@@ -487,7 +527,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 className: "w-20"
                             }, void 0, false, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 243,
+                                lineNumber: 318,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -498,19 +538,19 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                lineNumber: 244,
+                                lineNumber: 319,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 241,
+                        lineNumber: 316,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                lineNumber: 199,
+                lineNumber: 268,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -535,7 +575,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     strokeDasharray: "3 3"
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 253,
+                                    lineNumber: 330,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$XAxis$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["XAxis"], {
@@ -549,7 +589,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 254,
+                                    lineNumber: 331,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$YAxis$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["YAxis"], {
@@ -558,12 +598,12 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 255,
+                                    lineNumber: 339,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$Tooltip$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["Tooltip"], {}, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 256,
+                                    lineNumber: 340,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$Bar$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["Bar"], {
@@ -572,23 +612,23 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     barSize: barWidth,
                                     shape: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(CustomBar, {}, void 0, false, {
                                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                        lineNumber: 261,
+                                        lineNumber: 345,
                                         columnNumber: 24
                                     }, void 0)
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 257,
+                                    lineNumber: 341,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/ColumnDistributionChart.jsx",
-                            lineNumber: 252,
+                            lineNumber: 329,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 251,
+                        lineNumber: 328,
                         columnNumber: 11
                     }, this),
                     chartType === "line" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$ResponsiveContainer$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["ResponsiveContainer"], {
@@ -607,7 +647,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     strokeDasharray: "3 3"
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 270,
+                                    lineNumber: 355,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$XAxis$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["XAxis"], {
@@ -620,7 +660,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 271,
+                                    lineNumber: 356,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$YAxis$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["YAxis"], {
@@ -629,12 +669,12 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 272,
+                                    lineNumber: 363,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$Tooltip$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["Tooltip"], {}, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 273,
+                                    lineNumber: 364,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$Line$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["Line"], {
@@ -651,18 +691,18 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     onClick: handleBarClick
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 274,
+                                    lineNumber: 365,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/ColumnDistributionChart.jsx",
-                            lineNumber: 269,
+                            lineNumber: 354,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 268,
+                        lineNumber: 353,
                         columnNumber: 11
                     }, this),
                     chartType === "pie" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$ResponsiveContainer$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["ResponsiveContainer"], {
@@ -686,28 +726,28 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                             fill: PIE_COLORS[i % PIE_COLORS.length]
                                         }, i, false, {
                                             fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                            lineNumber: 300,
-                                            columnNumber: 42
+                                            lineNumber: 393,
+                                            columnNumber: 19
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 289,
+                                    lineNumber: 381,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$Tooltip$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["Tooltip"], {}, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 302,
+                                    lineNumber: 396,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/ColumnDistributionChart.jsx",
-                            lineNumber: 288,
+                            lineNumber: 380,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 287,
+                        lineNumber: 379,
                         columnNumber: 11
                     }, this),
                     chartType === "scatter" && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$ResponsiveContainer$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["ResponsiveContainer"], {
@@ -725,7 +765,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     strokeDasharray: "3 3"
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 310,
+                                    lineNumber: 405,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$XAxis$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["XAxis"], {
@@ -737,7 +777,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 311,
+                                    lineNumber: 406,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$YAxis$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["YAxis"], {
@@ -749,7 +789,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 312,
+                                    lineNumber: 407,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$component$2f$Tooltip$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["Tooltip"], {
@@ -758,7 +798,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     }
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 313,
+                                    lineNumber: 408,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$recharts$2f$es6$2f$cartesian$2f$Scatter$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__["Scatter"], {
@@ -766,29 +806,29 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                                     fill: "#6366f1",
                                     shape: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(CustomDot, {}, void 0, false, {
                                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                        lineNumber: 317,
+                                        lineNumber: 412,
                                         columnNumber: 24
                                     }, void 0)
                                 }, void 0, false, {
                                     fileName: "[project]/components/ColumnDistributionChart.jsx",
-                                    lineNumber: 314,
+                                    lineNumber: 409,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/ColumnDistributionChart.jsx",
-                            lineNumber: 309,
+                            lineNumber: 404,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/ColumnDistributionChart.jsx",
-                        lineNumber: 308,
+                        lineNumber: 403,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                lineNumber: 249,
+                lineNumber: 325,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -802,17 +842,17 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/ColumnDistributionChart.jsx",
-                lineNumber: 324,
+                lineNumber: 420,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/ColumnDistributionChart.jsx",
-        lineNumber: 183,
+        lineNumber: 249,
         columnNumber: 5
     }, this);
 } // "use client";
- // import React, { useMemo, useState } from "react";
+ // import React, { useMemo, useState, useCallback } from "react";
  // import {
  //   BarChart,
  //   Bar,
@@ -840,48 +880,94 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
  //   if (nums.length === 0) return [];
  //   const min = Math.min(...nums);
  //   const max = Math.max(...nums);
- //   if (min === max) return [{ name: String(min), count: nums.length }];
+ //   if (min === max) return [{ name: String(min), count: nums.length, binStart: min, binEnd: max }];
  //   const width = (max - min) / bins;
- //   const buckets = Array(bins).fill(0);
- //   nums.forEach(n => {
- //     let idx = Math.floor((n - min) / width);
- //     if (idx >= bins) idx = bins - 1;
- //     buckets[idx]++;
+ //   const buckets = Array(bins).fill(null).map((_, i) => ({
+ //     binStart: min + i * width,
+ //     binEnd: min + (i + 1) * width,
+ //     count: 0,
+ //     indices: []
+ //   }));
+ //   nums.forEach((n, idx) => {
+ //     let binIdx = Math.floor((n - min) / width);
+ //     if (binIdx >= bins) binIdx = bins - 1;
+ //     buckets[binIdx].count++;
+ //     buckets[binIdx].indices.push(idx);
  //   });
- //   return buckets.map((count, i) => ({
- //     name: `${(min + i * width).toFixed(1)}`,
- //     count
+ //   return buckets.map((bucket, i) => ({
+ //     name: `${bucket.binStart.toFixed(1)}`,
+ //     count: bucket.count,
+ //     binStart: bucket.binStart,
+ //     binEnd: bucket.binEnd,
+ //     indices: bucket.indices
  //   }));
  // }
  // function buildCategorical(values, maxCategories = 10) {
- //   const counts = {};
- //   values.forEach(v => {
+ //   const counts = new Map();
+ //   values.forEach((v, idx) => {
  //     const key = v === null || v === undefined || v === "" ? "(empty)" : String(v);
- //     counts[key] = (counts[key] || 0) + 1;
+ //     if (!counts.has(key)) {
+ //       counts.set(key, { count: 0, indices: [] });
+ //     }
+ //     counts.get(key).count++;
+ //     counts.get(key).indices.push(idx);
  //   });
- //   return Object.entries(counts)
- //     .sort((a, b) => b[1] - a[1])
- //     .slice(0, maxCategories)
- //     .map(([name, count]) => ({ name, count }));
+ //   const sorted = Array.from(counts.entries())
+ //     .sort((a, b) => b[1].count - a[1].count)
+ //     .slice(0, maxCategories);
+ //   return sorted.map(([name, data]) => ({ 
+ //     name, 
+ //     count: data.count, 
+ //     indices: data.indices 
+ //   }));
  // }
- // function buildScatter(values) {
+ // function buildScatter(values, pointSize = 5) {
  //   return values
- //     .map((v, i) => ({ x: i, y: isNum(v) ? parseFloat(v) : null }))
+ //     .map((v, i) => ({ x: i, y: isNum(v) ? parseFloat(v) : null, size: pointSize, index: i }))
  //     .filter(p => p.y !== null);
  // }
- // export default function ColumnDistributionChart({ header, values }) {
+ // export default function ColumnDistributionChart({ header, values, onValueChange }) {
  //   const [chartType, setChartType] = useState("histogram");
  //   const [bins, setBins] = useState(10);
  //   const [maxCategories, setMaxCategories] = useState(10);
+ //   const [pointSize, setPointSize] = useState(5);
+ //   const [barWidth, setBarWidth] = useState(20);
+ //   const [lineWidth, setLineWidth] = useState(2);
+ //   const [pieRadius, setPieRadius] = useState(80);
+ //   const [draggedItem, setDraggedItem] = useState(null);
  //   const isNumeric = useMemo(() => {
  //     const sample = values.slice(0, 100);
  //     return sample.filter(isNum).length / sample.length > 0.5;
  //   }, [values]);
  //   const data = useMemo(() => {
- //     if (chartType === "scatter") return buildScatter(values);
+ //     if (chartType === "scatter") return buildScatter(values, pointSize);
  //     if (isNumeric) return buildHistogram(values, bins);
  //     return buildCategorical(values, maxCategories);
- //   }, [chartType, isNumeric, values, bins, maxCategories]);
+ //   }, [chartType, isNumeric, values, bins, maxCategories, pointSize]);
+ //   // Handle bar click to enable editing
+ //   const handleBarClick = useCallback((data, index) => {
+ //     if (!data || !data.indices) return;
+ //     const newValue = prompt(
+ //       `Edit value for ${data.name}\nCurrent count: ${data.count}\nEnter new value for all ${data.count} items:`,
+ //       data.indices.length > 0 ? values[data.indices[0]] : ""
+ //     );
+ //     if (newValue !== null && onValueChange) {
+ //       data.indices.forEach(idx => {
+ //         onValueChange(idx, newValue);
+ //       });
+ //     }
+ //   }, [values, onValueChange]);
+ //   // Handle scatter point drag
+ //   const handleScatterClick = useCallback((data) => {
+ //     if (!data || data.index === undefined) return;
+ //     const newValue = prompt(
+ //       `Edit value at row ${data.index}\nCurrent value: ${data.y}`,
+ //       data.y
+ //     );
+ //     if (newValue !== null && onValueChange) {
+ //       onValueChange(data.index, newValue);
+ //     }
+ //   }, [onValueChange]);
  //   if (!data || data.length === 0) {
  //     return (
  //       <div className="border rounded p-4 bg-white">
@@ -890,6 +976,39 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
  //       </div>
  //     );
  //   }
+ //   const CustomBar = (props) => {
+ //     const { x, y, width, height, fill, payload, index } = props;
+ //     return (
+ //       <g>
+ //         <rect
+ //           x={x}
+ //           y={y}
+ //           width={width}
+ //           height={height}
+ //           fill={fill}
+ //           style={{ cursor: 'pointer' }}
+ //           onClick={() => handleBarClick(payload, index)}
+ //           onMouseEnter={(e) => e.target.style.opacity = 0.7}
+ //           onMouseLeave={(e) => e.target.style.opacity = 1}
+ //         />
+ //       </g>
+ //     );
+ //   };
+ //   const CustomDot = (props) => {
+ //     const { cx, cy, payload } = props;
+ //     return (
+ //       <circle
+ //         cx={cx}
+ //         cy={cy}
+ //         r={pointSize}
+ //         fill="#6366f1"
+ //         style={{ cursor: 'pointer' }}
+ //         onClick={() => handleScatterClick(payload)}
+ //         onMouseEnter={(e) => e.target.setAttribute('r', pointSize + 2)}
+ //         onMouseLeave={(e) => e.target.setAttribute('r', pointSize)}
+ //       />
+ //     );
+ //   };
  //   return (
  //     <div className="border rounded p-4 bg-white">
  //       <div className="flex justify-between items-center mb-2">
@@ -902,17 +1021,50 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
  //           {isNumeric && <option value="scatter">Scatter</option>}
  //         </select>
  //       </div>
- //       <div className="mb-2 flex gap-3 text-xs">
- //         {(chartType === "histogram" && isNumeric) && (
+ //       <div className="mb-1 text-xs text-blue-600 italic">
+ //         Click on {chartType === "scatter" ? "points" : "bars"} to edit values
+ //       </div>
+ //       <div className="mb-2 flex flex-wrap gap-3 text-xs">
+ //         {isNumeric && (chartType === "histogram" || chartType === "bar") && (
  //           <label className="flex items-center gap-1">
- //             Bins: <input type="range" min="5" max="30" value={bins} onChange={e => setBins(parseInt(e.target.value))} className="w-20" />
+ //             Bins:
+ //             <input type="range" min="5" max="30" value={bins} onChange={e => setBins(parseInt(e.target.value))} className="w-20" />
  //             <span className="text-gray-600">{bins}</span>
  //           </label>
  //         )}
- //         {(chartType === "bar" || chartType === "pie") && !isNumeric && (
+ //         {!isNumeric && (chartType === "bar" || chartType === "line" || chartType === "pie") && (
  //           <label className="flex items-center gap-1">
- //             Categories: <input type="range" min="5" max="20" value={maxCategories} onChange={e => setMaxCategories(parseInt(e.target.value))} className="w-20" />
+ //             Categories:
+ //             <input type="range" min="5" max="20" value={maxCategories} onChange={e => setMaxCategories(parseInt(e.target.value))} className="w-20" />
  //             <span className="text-gray-600">{maxCategories}</span>
+ //           </label>
+ //         )}
+ //         {(chartType === "histogram" || chartType === "bar") && (
+ //           <label className="flex items-center gap-1">
+ //             Bar Width:
+ //             <input type="range" min="10" max="50" value={barWidth} onChange={e => setBarWidth(parseInt(e.target.value))} className="w-20" />
+ //             <span className="text-gray-600">{barWidth}px</span>
+ //           </label>
+ //         )}
+ //         {chartType === "line" && (
+ //           <label className="flex items-center gap-1">
+ //             Line Width:
+ //             <input type="range" min="1" max="5" value={lineWidth} onChange={e => setLineWidth(parseInt(e.target.value))} className="w-20" />
+ //             <span className="text-gray-600">{lineWidth}px</span>
+ //           </label>
+ //         )}
+ //         {chartType === "pie" && (
+ //           <label className="flex items-center gap-1">
+ //             Pie Radius:
+ //             <input type="range" min="50" max="120" value={pieRadius} onChange={e => setPieRadius(parseInt(e.target.value))} className="w-20" />
+ //             <span className="text-gray-600">{pieRadius}px</span>
+ //           </label>
+ //         )}
+ //         {chartType === "scatter" && (
+ //           <label className="flex items-center gap-1">
+ //             Point Size:
+ //             <input type="range" min="2" max="15" value={pointSize} onChange={e => setPointSize(parseInt(e.target.value))} className="w-20" />
+ //             <span className="text-gray-600">{pointSize}px</span>
  //           </label>
  //         )}
  //       </div>
@@ -924,7 +1076,12 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
  //               <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} interval={0} tick={{ fontSize: 10 }} />
  //               <YAxis tick={{ fontSize: 10 }} />
  //               <Tooltip />
- //               <Bar dataKey="count" fill="#6366f1" />
+ //               <Bar 
+ //                 dataKey="count" 
+ //                 fill={chartType === "histogram" ? "#6366f1" : "#10b981"} 
+ //                 barSize={barWidth}
+ //                 shape={<CustomBar />}
+ //               />
  //             </BarChart>
  //           </ResponsiveContainer>
  //         )}
@@ -935,14 +1092,31 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
  //               <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} tick={{ fontSize: 10 }} />
  //               <YAxis tick={{ fontSize: 10 }} />
  //               <Tooltip />
- //               <Line type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} />
+ //               <Line 
+ //                 type="monotone" 
+ //                 dataKey="count" 
+ //                 stroke="#ef4444" 
+ //                 strokeWidth={lineWidth}
+ //                 dot={{ r: lineWidth + 1, style: { cursor: 'pointer' } }}
+ //                 onClick={handleBarClick}
+ //               />
  //             </LineChart>
  //           </ResponsiveContainer>
  //         )}
  //         {chartType === "pie" && (
  //           <ResponsiveContainer width="100%" height="100%">
  //             <PieChart>
- //               <Pie data={data} dataKey="count" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+ //               <Pie 
+ //                 data={data} 
+ //                 dataKey="count" 
+ //                 nameKey="name" 
+ //                 cx="50%" 
+ //                 cy="50%" 
+ //                 outerRadius={pieRadius} 
+ //                 label={data.length <= 8}
+ //                 onClick={(data, index) => handleBarClick(data, index)}
+ //                 style={{ cursor: 'pointer' }}
+ //               >
  //                 {data.map((entry, i) => (<Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />))}
  //               </Pie>
  //               <Tooltip />
@@ -956,7 +1130,11 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
  //               <XAxis type="number" dataKey="x" name="Index" tick={{ fontSize: 10 }} />
  //               <YAxis type="number" dataKey="y" name="Value" tick={{ fontSize: 10 }} />
  //               <Tooltip cursor={{ strokeDasharray: "3 3" }} />
- //               <Scatter data={data} fill="#6366f1" />
+ //               <Scatter 
+ //                 data={data} 
+ //                 fill="#6366f1" 
+ //                 shape={<CustomDot />}
+ //               />
  //             </ScatterChart>
  //           </ResponsiveContainer>
  //         )}
@@ -971,6 +1149,7 @@ function ColumnDistributionChart({ header, values, onValueChange }) {
 "[project]/pages/dashboard/index.jsx [ssr] (ecmascript)", ((__turbopack_context__) => {
 "use strict";
 
+// Main dashboard for data analysis and visualization
 __turbopack_context__.s([
     "default",
     ()=>Dashboard
@@ -981,14 +1160,23 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ColumnDistribu
 ;
 ;
 ;
-const csvSplit = (line)=>line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
-function parseCSV(text) {
+/**
+ * Split CSV line respecting quoted values
+ * Handles commas inside quoted strings
+ */ const csvSplit = (line)=>line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+/**
+ * Parse CSV text into headers and rows
+ * @param {string} text - Raw CSV text
+ * @returns {Object} - { headers: Array, rows: Array }
+ */ function parseCSV(text) {
     const lines = text.replace(/\r\n/g, "\n").split("\n").filter((l)=>l.length > 0);
     if (lines.length === 0) return {
         headers: [],
         rows: []
     };
+    // Extract headers from first line
     const headers = csvSplit(lines[0]).map((h)=>h.replace(/^"(.*)"$/, "$1").trim());
+    // Parse data rows
     const rows = lines.slice(1).map((line)=>{
         const parts = csvSplit(line).map((v)=>v.replace(/^"(.*)"$/, "$1").trim());
         const obj = {};
@@ -1002,50 +1190,100 @@ function parseCSV(text) {
         rows
     };
 }
+/**
+ * Detect file type from filename extension
+ * @param {string} filename - Name of file
+ * @returns {string} - File extension
+ */ function detectFileType(filename) {
+    const ext = filename.toLowerCase().split('.').pop();
+    return ext;
+}
 function Dashboard() {
+    // Client-side rendering flag
     const [isClient, setIsClient] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(false);
+    // File and data state
     const [file, setFile] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(null);
     const [data, setData] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(null);
     const [headers, setHeaders] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])([]);
     const [statistics, setStatistics] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(null);
+    const [fileType, setFileType] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(null);
+    // UI state
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(false);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(null);
+    const [showAllRows, setShowAllRows] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(false);
+    // Editing state
     const [editingCell, setEditingCell] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(null);
     const [editValue, setEditValue] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])("");
-    const [dataVersion, setDataVersion] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(0); // Force chart re-render
+    const [dataVersion, setDataVersion] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(0); // Track data modifications
+    // Set client flag after mount
     (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useEffect"])(()=>setIsClient(true), []);
-    const handleFileChange = (e)=>{
+    /**
+   * Handle file selection
+   * Validates file type and updates state
+   */ const handleFileChange = (e)=>{
         const selectedFile = e.target.files?.[0];
-        if (selectedFile && selectedFile.name.toLowerCase().endsWith(".csv")) {
-            setFile(selectedFile);
-            setError(null);
-        } else {
-            setError("Please select a valid .csv file");
+        if (selectedFile) {
+            const ext = detectFileType(selectedFile.name);
+            const allowedTypes = [
+                'csv',
+                'json',
+                'xlsx',
+                'xls',
+                'txt'
+            ];
+            if (allowedTypes.includes(ext)) {
+                setFile(selectedFile);
+                setFileType(ext);
+                setError(null);
+            } else {
+                setError("Please select a valid file (CSV, JSON, Excel, or TXT)");
+                setFile(null);
+                setFileType(null);
+            }
         }
     };
-    const handleUpload = async ()=>{
+    /**
+   * Upload file and fetch data/statistics
+   * Handles multi-step process:
+   * 1. Upload file
+   * 2. Fetch statistics
+   * 3. Fetch and parse data
+   */ const handleUpload = async ()=>{
         if (!file) return;
         setLoading(true);
         setError(null);
         try {
+            // Step 1: Upload file
             const formData = new FormData();
             formData.append("file", file);
             const uploadRes = await fetch("http://localhost:3000/upload", {
                 method: "POST",
                 body: formData
             });
-            if (!uploadRes.ok) throw new Error("Upload failed");
-            const { filename } = await uploadRes.json();
+            if (!uploadRes.ok) {
+                const errorData = await uploadRes.json();
+                throw new Error(errorData.error || "Upload failed");
+            }
+            const { filename, fileType: uploadedFileType } = await uploadRes.json();
+            setFileType(uploadedFileType.replace('.', ''));
+            // Step 2: Fetch statistics
             const statsRes = await fetch(`http://localhost:3000/stats/${filename}`);
             if (!statsRes.ok) throw new Error("Failed to calculate statistics");
             const statsData = await statsRes.json();
             setStatistics(statsData);
-            const dataRes = await fetch(`http://localhost:3000/uploads/${filename}`);
+            // Step 3: Fetch parsed data
+            const dataRes = await fetch(`http://localhost:3000/data/${filename}`);
             if (!dataRes.ok) throw new Error("Failed to load uploaded file");
-            const csvText = await dataRes.text();
-            const parsed = parseCSV(csvText);
-            setHeaders(parsed.headers);
-            setData(parsed.rows);
+            const jsonData = await dataRes.json();
+            // Extract headers and rows
+            if (jsonData.data && Array.isArray(jsonData.data)) {
+                const rows = jsonData.data;
+                const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
+                setHeaders(headers);
+                setData(rows);
+            } else {
+                throw new Error("Invalid data format");
+            }
             setDataVersion(0);
         } catch (err) {
             setError(err.message || "Unexpected error");
@@ -1053,7 +1291,9 @@ function Dashboard() {
             setLoading(false);
         }
     };
-    const handleReset = ()=>{
+    /**
+   * Reset dashboard to initial state
+   */ const handleReset = ()=>{
         setFile(null);
         setData(null);
         setHeaders([]);
@@ -1061,10 +1301,14 @@ function Dashboard() {
         setError(null);
         setEditingCell(null);
         setDataVersion(0);
+        setFileType(null);
     };
-    const exportJSON = ()=>{
+    /**
+   * Export current data as JSON
+   */ const exportJSON = ()=>{
         const exportData = {
             fileName: file?.name,
+            fileType: fileType,
             statistics,
             rows: data
         };
@@ -1080,8 +1324,33 @@ function Dashboard() {
         a.click();
         URL.revokeObjectURL(url);
     };
-    // Show all rows instead of just 10
-    const [showAllRows, setShowAllRows] = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useState"])(false);
+    /**
+   * Export current data as CSV
+   * Handles proper CSV formatting with quotes for values containing commas
+   */ const exportCSV = ()=>{
+        if (!data || data.length === 0) return;
+        const csvContent = [
+            headers.join(','),
+            ...data.map((row)=>headers.map((h)=>{
+                    // const value = row[h] || '';
+                    const value = row[h] != null ? String(row[h]) : '';
+                    // Quote values containing commas or quotes
+                    return value.includes(',') || value.includes('"') ? `"${value.replace(/"/g, '""')}"` : value;
+                }).join(','))
+        ].join('\n');
+        const blob = new Blob([
+            csvContent
+        ], {
+            type: 'text/csv'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `export-${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+    // Get rows for preview (limited or all)
     const previewRows = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useMemo"])(()=>{
         if (!data) return [];
         return showAllRows ? data : data.slice(0, 20);
@@ -1089,14 +1358,22 @@ function Dashboard() {
         data,
         showAllRows
     ]);
-    const startEdit = (rowIndex, colName, currentValue)=>{
+    /**
+   * Start editing a cell
+   * @param {number} rowIndex - Row index in data
+   * @param {string} colName - Column name
+   * @param {any} currentValue - Current cell value
+   */ const startEdit = (rowIndex, colName, currentValue)=>{
         setEditingCell({
             rowIndex,
             colName
         });
         setEditValue(currentValue);
     };
-    const saveEdit = (rowIndex, colName)=>{
+    /**
+   * Save edited cell value
+   * Updates data and triggers re-render
+   */ const saveEdit = (rowIndex, colName)=>{
         if (editingCell) {
             const newData = [
                 ...data
@@ -1105,15 +1382,19 @@ function Dashboard() {
             setData(newData);
             setEditingCell(null);
             setEditValue("");
-            setDataVersion((v)=>v + 1); // Trigger chart update
+            setDataVersion((v)=>v + 1); // Increment version to trigger updates
         }
     };
-    const cancelEdit = ()=>{
+    /**
+   * Cancel editing without saving
+   */ const cancelEdit = ()=>{
         setEditingCell(null);
         setEditValue("");
     };
-    // Handle value change from chart
-    const handleChartValueChange = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useCallback"])((columnName)=>{
+    /**
+   * Create handler for chart value changes
+   * Returns a function that updates specific column/row
+   */ const handleChartValueChange = (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useCallback"])((columnName)=>{
         return (rowIndex, newValue)=>{
             const newData = [
                 ...data
@@ -1121,22 +1402,26 @@ function Dashboard() {
             if (newData[rowIndex]) {
                 newData[rowIndex][columnName] = newValue;
                 setData(newData);
-                setDataVersion((v)=>v + 1); // Trigger chart update
+                setDataVersion((v)=>v + 1);
             }
         };
     }, [
         data
     ]);
-    // Recalculate statistics when data changes
-    (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useEffect"])(()=>{
+    /**
+   * Recalculate statistics when data changes
+   * Runs automatically on data updates
+   */ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react__$5b$external$5d$__$28$react$2c$__cjs$29$__["useEffect"])(()=>{
         if (!data || data.length === 0) return;
         const calculateStats = ()=>{
             const columnStats = {};
             headers.forEach((header)=>{
+                // Get non-empty values
                 const values = data.map((row)=>row[header]).filter((v)=>v !== null && v !== undefined && v !== "");
                 const numericValues = values.filter((v)=>!isNaN(parseFloat(v))).map((v)=>parseFloat(v));
+                // Determine if column is numeric (>50% numeric values)
                 if (numericValues.length > values.length * 0.5) {
-                    // Numeric column
+                    // Calculate numeric statistics
                     const sorted = [
                         ...numericValues
                     ].sort((a, b)=>a - b);
@@ -1154,7 +1439,7 @@ function Dashboard() {
                         max: Math.max(...numericValues)
                     };
                 } else {
-                    // Categorical column
+                    // Calculate categorical statistics
                     columnStats[header] = {
                         count: values.length,
                         unique: new Set(values).size
@@ -1171,6 +1456,26 @@ function Dashboard() {
         headers,
         dataVersion
     ]);
+    /**
+   * Get icon emoji for file type
+   * @param {string} type - File extension
+   * @returns {string} - Emoji icon
+   */ const getFileIcon = (type)=>{
+        switch(type?.toLowerCase()){
+            case 'csv':
+                return '📊';
+            case 'json':
+                return '📋';
+            case 'xlsx':
+            case 'xls':
+                return '📈';
+            case 'txt':
+                return '📄';
+            default:
+                return '📁';
+        }
+    };
+    // Render component
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
         className: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100",
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1181,7 +1486,7 @@ function Dashboard() {
                     children: "Statistical Analysis Dashboard"
                 }, void 0, false, {
                     fileName: "[project]/pages/dashboard/index.jsx",
-                    lineNumber: 193,
+                    lineNumber: 336,
                     columnNumber: 9
                 }, this),
                 !data ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1189,10 +1494,10 @@ function Dashboard() {
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("h2", {
                             className: "text-xl font-semibold mb-4",
-                            children: "Upload CSV File"
+                            children: "Upload Data File"
                         }, void 0, false, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 199,
+                            lineNumber: 343,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1201,12 +1506,12 @@ function Dashboard() {
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("input", {
                                     id: "file-upload",
                                     type: "file",
-                                    accept: ".csv",
+                                    accept: ".csv,.json,.xlsx,.xls,.txt",
                                     onChange: handleFileChange,
                                     className: "hidden"
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 202,
+                                    lineNumber: 347,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("label", {
@@ -1215,38 +1520,49 @@ function Dashboard() {
                                     children: [
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
                                             className: "text-6xl mb-4",
-                                            children: "📊"
+                                            children: file ? getFileIcon(fileType) : '📁'
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 210,
+                                            lineNumber: 355,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
                                             className: "text-lg text-gray-600 mb-1",
-                                            children: file ? file.name : "Click to select CSV file"
+                                            children: file ? file.name : "Click to select a data file"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 211,
+                                            lineNumber: 356,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
                                             className: "text-sm text-gray-400",
-                                            children: "CSV files only"
+                                            children: "Supported: CSV, JSON, Excel (.xlsx, .xls), TXT"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 214,
+                                            lineNumber: 359,
                                             columnNumber: 17
+                                        }, this),
+                                        file && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
+                                            className: "text-xs text-green-600 mt-2 font-medium",
+                                            children: [
+                                                "File Type: ",
+                                                fileType?.toUpperCase()
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 363,
+                                            columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 209,
+                                    lineNumber: 354,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 201,
+                            lineNumber: 346,
                             columnNumber: 13
                         }, this),
                         error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1254,54 +1570,207 @@ function Dashboard() {
                             children: error
                         }, void 0, false, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 219,
+                            lineNumber: 372,
                             columnNumber: 15
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
                             onClick: handleUpload,
                             disabled: !file || loading,
                             className: "mt-6 w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition",
-                            children: loading ? "Analyzing..." : "Analyze Data"
+                            children: loading ? "Processing..." : "Analyze Data"
                         }, void 0, false, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 224,
+                            lineNumber: 378,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                            className: "mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                    className: "p-3 bg-blue-50 rounded",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "text-2xl mb-1",
+                                            children: "📊"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 389,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "font-medium",
+                                            children: "CSV"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 390,
+                                            columnNumber: 17
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/pages/dashboard/index.jsx",
+                                    lineNumber: 388,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                    className: "p-3 bg-green-50 rounded",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "text-2xl mb-1",
+                                            children: "📋"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 393,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "font-medium",
+                                            children: "JSON"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 394,
+                                            columnNumber: 17
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/pages/dashboard/index.jsx",
+                                    lineNumber: 392,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                    className: "p-3 bg-purple-50 rounded",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "text-2xl mb-1",
+                                            children: "📈"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 397,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "font-medium",
+                                            children: "Excel"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 398,
+                                            columnNumber: 17
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/pages/dashboard/index.jsx",
+                                    lineNumber: 396,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                    className: "p-3 bg-yellow-50 rounded",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "text-2xl mb-1",
+                                            children: "📄"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 401,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            className: "font-medium",
+                                            children: "TXT"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 402,
+                                            columnNumber: 17
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/pages/dashboard/index.jsx",
+                                    lineNumber: 400,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/pages/dashboard/index.jsx",
+                            lineNumber: 387,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/pages/dashboard/index.jsx",
-                    lineNumber: 198,
+                    lineNumber: 342,
                     columnNumber: 11
-                }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                }, this) : // Data Analysis Section (shown after file loaded)
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
                     className: "space-y-8",
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
                             className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3",
                             children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
-                                    className: "text-gray-600",
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                    className: "flex items-center gap-2",
                                     children: [
-                                        "File: ",
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("strong", {
-                                            children: file?.name
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
+                                            className: "text-3xl",
+                                            children: getFileIcon(fileType)
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 236,
-                                            columnNumber: 23
+                                            lineNumber: 412,
+                                            columnNumber: 17
                                         }, this),
-                                        " • Modified: ",
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("strong", {
-                                            className: "text-green-600",
-                                            children: dataVersion > 0 ? 'Yes' : 'No'
-                                        }, void 0, false, {
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
+                                                    className: "text-gray-600",
+                                                    children: [
+                                                        "File: ",
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("strong", {
+                                                            children: file?.name
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                                            lineNumber: 415,
+                                                            columnNumber: 27
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/pages/dashboard/index.jsx",
+                                                    lineNumber: 414,
+                                                    columnNumber: 19
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
+                                                    className: "text-sm text-gray-500",
+                                                    children: [
+                                                        "Type: ",
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("strong", {
+                                                            className: "text-indigo-600",
+                                                            children: fileType?.toUpperCase()
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                                            lineNumber: 418,
+                                                            columnNumber: 27
+                                                        }, this),
+                                                        " • Modified: ",
+                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("strong", {
+                                                            className: dataVersion > 0 ? 'text-green-600' : 'text-gray-600',
+                                                            children: dataVersion > 0 ? 'Yes' : 'No'
+                                                        }, void 0, false, {
+                                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                                            lineNumber: 419,
+                                                            columnNumber: 31
+                                                        }, this)
+                                                    ]
+                                                }, void 0, true, {
+                                                    fileName: "[project]/pages/dashboard/index.jsx",
+                                                    lineNumber: 417,
+                                                    columnNumber: 19
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 236,
-                                            columnNumber: 65
+                                            lineNumber: 413,
+                                            columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 235,
+                                    lineNumber: 411,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1309,32 +1778,41 @@ function Dashboard() {
                                     children: [
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
                                             onClick: exportJSON,
-                                            className: "bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition",
-                                            children: "Export JSON"
+                                            className: "bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition text-sm",
+                                            children: "📥 Export JSON"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 239,
+                                            lineNumber: 426,
+                                            columnNumber: 17
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
+                                            onClick: exportCSV,
+                                            className: "bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition text-sm",
+                                            children: "📥 Export CSV"
+                                        }, void 0, false, {
+                                            fileName: "[project]/pages/dashboard/index.jsx",
+                                            lineNumber: 432,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
                                             onClick: handleReset,
-                                            className: "bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition",
-                                            children: "New Analysis"
+                                            className: "bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition text-sm",
+                                            children: "🔄 New Analysis"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 245,
+                                            lineNumber: 438,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 238,
+                                    lineNumber: 425,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 234,
+                            lineNumber: 410,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1349,13 +1827,13 @@ function Dashboard() {
                                             children: "(Live Updated)"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 258,
+                                            lineNumber: 451,
                                             columnNumber: 37
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 256,
+                                    lineNumber: 449,
                                     columnNumber: 15
                                 }, this),
                                 statistics?.columnStats && Object.keys(statistics.columnStats).length > 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1368,7 +1846,7 @@ function Dashboard() {
                                                     children: column
                                                 }, void 0, false, {
                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                    lineNumber: 264,
+                                                    lineNumber: 457,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1382,7 +1860,7 @@ function Dashboard() {
                                                                     children: "Count:"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 267,
+                                                                    lineNumber: 461,
                                                                     columnNumber: 27
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1390,13 +1868,13 @@ function Dashboard() {
                                                                     children: stats.count
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 268,
+                                                                    lineNumber: 462,
                                                                     columnNumber: 27
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                            lineNumber: 266,
+                                                            lineNumber: 460,
                                                             columnNumber: 25
                                                         }, this),
                                                         "mean" in stats && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["Fragment"], {
@@ -1409,7 +1887,7 @@ function Dashboard() {
                                                                             children: "Mean:"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 273,
+                                                                            lineNumber: 468,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1417,13 +1895,13 @@ function Dashboard() {
                                                                             children: Number(stats.mean)?.toFixed?.(2)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 274,
+                                                                            lineNumber: 469,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 272,
+                                                                    lineNumber: 467,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1434,7 +1912,7 @@ function Dashboard() {
                                                                             children: "Median:"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 277,
+                                                                            lineNumber: 472,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1442,13 +1920,13 @@ function Dashboard() {
                                                                             children: Number(stats.median)?.toFixed?.(2)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 278,
+                                                                            lineNumber: 473,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 276,
+                                                                    lineNumber: 471,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1459,7 +1937,7 @@ function Dashboard() {
                                                                             children: "Std Dev:"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 281,
+                                                                            lineNumber: 476,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1467,13 +1945,13 @@ function Dashboard() {
                                                                             children: Number(stats.stdDev)?.toFixed?.(2)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 282,
+                                                                            lineNumber: 477,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 280,
+                                                                    lineNumber: 475,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1484,7 +1962,7 @@ function Dashboard() {
                                                                             children: "Min:"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 285,
+                                                                            lineNumber: 480,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1492,13 +1970,13 @@ function Dashboard() {
                                                                             children: Number(stats.min)?.toFixed?.(2)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 286,
+                                                                            lineNumber: 481,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 284,
+                                                                    lineNumber: 479,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1509,7 +1987,7 @@ function Dashboard() {
                                                                             children: "Max:"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 289,
+                                                                            lineNumber: 484,
                                                                             columnNumber: 31
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1517,13 +1995,13 @@ function Dashboard() {
                                                                             children: Number(stats.max)?.toFixed?.(2)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                                            lineNumber: 290,
+                                                                            lineNumber: 485,
                                                                             columnNumber: 31
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 288,
+                                                                    lineNumber: 483,
                                                                     columnNumber: 29
                                                                 }, this)
                                                             ]
@@ -1536,7 +2014,7 @@ function Dashboard() {
                                                                     children: "Unique:"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 296,
+                                                                    lineNumber: 492,
                                                                     columnNumber: 29
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
@@ -1544,43 +2022,43 @@ function Dashboard() {
                                                                     children: stats.unique
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 297,
+                                                                    lineNumber: 493,
                                                                     columnNumber: 29
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                            lineNumber: 295,
+                                                            lineNumber: 491,
                                                             columnNumber: 27
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                    lineNumber: 265,
+                                                    lineNumber: 458,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, column, true, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 263,
+                                            lineNumber: 456,
                                             columnNumber: 21
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 261,
+                                    lineNumber: 454,
                                     columnNumber: 17
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
                                     className: "text-sm text-gray-500",
                                     children: "No statistics available."
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 305,
+                                    lineNumber: 501,
                                     columnNumber: 17
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 255,
+                            lineNumber: 448,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1594,7 +2072,7 @@ function Dashboard() {
                                             children: "Data Preview (Editable)"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 312,
+                                            lineNumber: 508,
                                             columnNumber: 17
                                         }, this),
                                         data.length > 20 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("button", {
@@ -1603,13 +2081,13 @@ function Dashboard() {
                                             children: showAllRows ? 'Show Less' : `Show All ${data.length} Rows`
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 314,
+                                            lineNumber: 510,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 311,
+                                    lineNumber: 507,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1621,19 +2099,19 @@ function Dashboard() {
                                                 children: "💡 Tip:"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/dashboard/index.jsx",
-                                                lineNumber: 324,
+                                                lineNumber: 521,
                                                 columnNumber: 19
                                             }, this),
                                             " Double-click any cell to edit. Press Enter to save or Escape to cancel. Changes will automatically update the charts below."
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/dashboard/index.jsx",
-                                        lineNumber: 323,
+                                        lineNumber: 520,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 322,
+                                    lineNumber: 519,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1650,7 +2128,7 @@ function Dashboard() {
                                                             children: "#"
                                                         }, void 0, false, {
                                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                                            lineNumber: 332,
+                                                            lineNumber: 530,
                                                             columnNumber: 23
                                                         }, this),
                                                         headers.map((h)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("th", {
@@ -1658,18 +2136,18 @@ function Dashboard() {
                                                                 children: h
                                                             }, h, false, {
                                                                 fileName: "[project]/pages/dashboard/index.jsx",
-                                                                lineNumber: 334,
+                                                                lineNumber: 532,
                                                                 columnNumber: 25
                                                             }, this))
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                    lineNumber: 331,
+                                                    lineNumber: 529,
                                                     columnNumber: 21
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/dashboard/index.jsx",
-                                                lineNumber: 330,
+                                                lineNumber: 528,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("tbody", {
@@ -1682,7 +2160,7 @@ function Dashboard() {
                                                                 children: idx + 1
                                                             }, void 0, false, {
                                                                 fileName: "[project]/pages/dashboard/index.jsx",
-                                                                lineNumber: 346,
+                                                                lineNumber: 544,
                                                                 columnNumber: 25
                                                             }, this),
                                                             headers.map((h)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("td", {
@@ -1702,41 +2180,41 @@ function Dashboard() {
                                                                         className: "w-full px-2 py-1 border-2 border-indigo-500 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/dashboard/index.jsx",
-                                                                        lineNumber: 355,
+                                                                        lineNumber: 554,
                                                                         columnNumber: 31
                                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
                                                                         className: editingCell?.rowIndex === idx && editingCell?.colName === h ? 'font-bold' : '',
                                                                         children: row[h]
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/pages/dashboard/index.jsx",
-                                                                        lineNumber: 368,
+                                                                        lineNumber: 567,
                                                                         columnNumber: 31
                                                                     }, this)
                                                                 }, h, false, {
                                                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                                                    lineNumber: 348,
+                                                                    lineNumber: 546,
                                                                     columnNumber: 27
                                                                 }, this))
                                                         ]
                                                     }, idx, true, {
                                                         fileName: "[project]/pages/dashboard/index.jsx",
-                                                        lineNumber: 345,
+                                                        lineNumber: 543,
                                                         columnNumber: 23
                                                     }, this))
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/dashboard/index.jsx",
-                                                lineNumber: 343,
+                                                lineNumber: 541,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/dashboard/index.jsx",
-                                        lineNumber: 329,
+                                        lineNumber: 527,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 328,
+                                    lineNumber: 526,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
@@ -1750,13 +2228,13 @@ function Dashboard() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 379,
+                                    lineNumber: 578,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 310,
+                            lineNumber: 506,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1771,13 +2249,13 @@ function Dashboard() {
                                             children: "(Live Updated)"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 388,
+                                            lineNumber: 587,
                                             columnNumber: 37
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 386,
+                                    lineNumber: 585,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
@@ -1789,19 +2267,19 @@ function Dashboard() {
                                                 children: "🎯 Interactive Charts:"
                                             }, void 0, false, {
                                                 fileName: "[project]/pages/dashboard/index.jsx",
-                                                lineNumber: 392,
+                                                lineNumber: 592,
                                                 columnNumber: 19
                                             }, this),
                                             " Click on bars, points, or pie slices to edit values. All changes sync with the data table above in real-time."
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/pages/dashboard/index.jsx",
-                                        lineNumber: 391,
+                                        lineNumber: 591,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 390,
+                                    lineNumber: 590,
                                     columnNumber: 15
                                 }, this),
                                 !isClient ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("p", {
@@ -1809,7 +2287,7 @@ function Dashboard() {
                                     children: "Loading charts…"
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 397,
+                                    lineNumber: 598,
                                     columnNumber: 17
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
                                     className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6",
@@ -1819,63 +2297,40 @@ function Dashboard() {
                                             onValueChange: handleChartValueChange(h)
                                         }, `${h}-${dataVersion}`, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
-                                            lineNumber: 401,
+                                            lineNumber: 602,
                                             columnNumber: 21
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/pages/dashboard/index.jsx",
-                                    lineNumber: 399,
+                                    lineNumber: 600,
                                     columnNumber: 17
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/pages/dashboard/index.jsx",
-                            lineNumber: 385,
+                            lineNumber: 584,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/pages/dashboard/index.jsx",
-                    lineNumber: 233,
+                    lineNumber: 408,
                     columnNumber: 11
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/pages/dashboard/index.jsx",
-            lineNumber: 192,
+            lineNumber: 334,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/pages/dashboard/index.jsx",
-        lineNumber: 191,
+        lineNumber: 333,
         columnNumber: 5
     }, this);
-} // /**
- //  * Dashboard page
- //  * - Upload a CSV file to your Express server
- //  * - Fetch server-calculated statistics
- //  * - Parse the CSV on the client for preview and per‑column distributions
- //  * - Render per‑column charts using ColumnDistributionChart (default = histogram)
- //  *
- //  * Requirements:
- //  * - Backend running at http://localhost:3000 (server/server.js)
- //  * - Frontend (Next.js) at http://localhost:3001
- //  * - Recharts installed: yarn add recharts
- //  * - Alias set in jsconfig.json: { "compilerOptions": { "baseUrl": ".", "paths": { "@components/*": ["components/*"] } } }
- //  */
- // import React, { useEffect, useMemo, useState } from "react";
+} // import React, { useEffect, useMemo, useState, useCallback } from "react";
  // import ColumnDistributionChart from "../../components/ColumnDistributionChart";
- // // If you didn't set the alias above, use the relative import instead:
- // // import ColumnDistributionChart from "../../components/ColumnDistributionChart";
- // /** Minimal CSV splitter that respects double quotes.
- //  * Splits a line by commas not enclosed in quotes.
- //  */
  // const csvSplit = (line) => line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
- // /** Parse CSV text into [{col: value, ...}, ...]
- //  * - Handles CRLF vs LF
- //  * - Trims headers
- //  * - Strips wrapping quotes in values
- //  */
  // function parseCSV(text) {
  //   const lines = text.replace(/\r\n/g, "\n").split("\n").filter((l) => l.length > 0);
  //   if (lines.length === 0) return { headers: [], rows: [] };
@@ -1891,17 +2346,17 @@ function Dashboard() {
  //   return { headers, rows };
  // }
  // export default function Dashboard() {
- //   // Render charts only on client to avoid SSR mismatch with Recharts
  //   const [isClient, setIsClient] = useState(false);
- //   // Upload/analysis state
  //   const [file, setFile] = useState(null);
- //   const [data, setData] = useState(null);                 // parsed CSV rows (array of objects)
- //   const [headers, setHeaders] = useState([]);             // column names
- //   const [statistics, setStatistics] = useState(null);     // response from /stats/:filename
+ //   const [data, setData] = useState(null);
+ //   const [headers, setHeaders] = useState([]);
+ //   const [statistics, setStatistics] = useState(null);
  //   const [loading, setLoading] = useState(false);
  //   const [error, setError] = useState(null);
+ //   const [editingCell, setEditingCell] = useState(null);
+ //   const [editValue, setEditValue] = useState("");
+ //   const [dataVersion, setDataVersion] = useState(0); // Force chart re-render
  //   useEffect(() => setIsClient(true), []);
- //   // Handle local file selection (CSV only)
  //   const handleFileChange = (e) => {
  //     const selectedFile = e.target.files?.[0];
  //     if (selectedFile && selectedFile.name.toLowerCase().endsWith(".csv")) {
@@ -1911,13 +2366,11 @@ function Dashboard() {
  //       setError("Please select a valid .csv file");
  //     }
  //   };
- //   // Upload to backend, fetch stats and the raw CSV, then parse
  //   const handleUpload = async () => {
  //     if (!file) return;
  //     setLoading(true);
  //     setError(null);
  //     try {
- //       // 1) Upload CSV to the Express server
  //       const formData = new FormData();
  //       formData.append("file", file);
  //       const uploadRes = await fetch("http://localhost:3000/upload", {
@@ -1926,34 +2379,32 @@ function Dashboard() {
  //       });
  //       if (!uploadRes.ok) throw new Error("Upload failed");
  //       const { filename } = await uploadRes.json();
- //       // 2) Ask backend to compute statistics over the uploaded file
  //       const statsRes = await fetch(`http://localhost:3000/stats/${filename}`);
  //       if (!statsRes.ok) throw new Error("Failed to calculate statistics");
  //       const statsData = await statsRes.json();
  //       setStatistics(statsData);
- //       // 3) Fetch the raw CSV back for client-side parsing (preview + charts)
  //       const dataRes = await fetch(`http://localhost:3000/uploads/${filename}`);
  //       if (!dataRes.ok) throw new Error("Failed to load uploaded file");
  //       const csvText = await dataRes.text();
- //       // 4) Parse CSV into rows + headers
  //       const parsed = parseCSV(csvText);
  //       setHeaders(parsed.headers);
  //       setData(parsed.rows);
+ //       setDataVersion(0);
  //     } catch (err) {
  //       setError(err.message || "Unexpected error");
  //     } finally {
  //       setLoading(false);
  //     }
  //   };
- //   // Reset the UI for a new analysis
  //   const handleReset = () => {
  //     setFile(null);
  //     setData(null);
  //     setHeaders([]);
  //     setStatistics(null);
  //     setError(null);
+ //     setEditingCell(null);
+ //     setDataVersion(0);
  //   };
- //   // Export current analysis to JSON (file name, stats, and rows)
  //   const exportJSON = () => {
  //     const exportData = {
  //       fileName: file?.name,
@@ -1968,8 +2419,77 @@ function Dashboard() {
  //     a.click();
  //     URL.revokeObjectURL(url);
  //   };
- //   // Convenience: preview the first 10 rows
- //   const previewRows = useMemo(() => (data ? data.slice(0, 10) : []), [data]);
+ //   // Show all rows instead of just 10
+ //   const [showAllRows, setShowAllRows] = useState(false);
+ //   const previewRows = useMemo(() => {
+ //     if (!data) return [];
+ //     return showAllRows ? data : data.slice(0, 20);
+ //   }, [data, showAllRows]);
+ //   const startEdit = (rowIndex, colName, currentValue) => {
+ //     setEditingCell({ rowIndex, colName });
+ //     setEditValue(currentValue);
+ //   };
+ //   const saveEdit = (rowIndex, colName) => {
+ //     if (editingCell) {
+ //       const newData = [...data];
+ //       newData[rowIndex][colName] = editValue;
+ //       setData(newData);
+ //       setEditingCell(null);
+ //       setEditValue("");
+ //       setDataVersion(v => v + 1); // Trigger chart update
+ //     }
+ //   };
+ //   const cancelEdit = () => {
+ //     setEditingCell(null);
+ //     setEditValue("");
+ //   };
+ //   // Handle value change from chart
+ //   const handleChartValueChange = useCallback((columnName) => {
+ //     return (rowIndex, newValue) => {
+ //       const newData = [...data];
+ //       if (newData[rowIndex]) {
+ //         newData[rowIndex][columnName] = newValue;
+ //         setData(newData);
+ //         setDataVersion(v => v + 1); // Trigger chart update
+ //       }
+ //     };
+ //   }, [data]);
+ //   // Recalculate statistics when data changes
+ //   useEffect(() => {
+ //     if (!data || data.length === 0) return;
+ //     const calculateStats = () => {
+ //       const columnStats = {};
+ //       headers.forEach(header => {
+ //         const values = data.map(row => row[header]).filter(v => v !== null && v !== undefined && v !== "");
+ //         const numericValues = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
+ //         if (numericValues.length > values.length * 0.5) {
+ //           // Numeric column
+ //           const sorted = [...numericValues].sort((a, b) => a - b);
+ //           const sum = numericValues.reduce((acc, val) => acc + val, 0);
+ //           const mean = sum / numericValues.length;
+ //           const median = sorted[Math.floor(sorted.length / 2)];
+ //           const variance = numericValues.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / numericValues.length;
+ //           const stdDev = Math.sqrt(variance);
+ //           columnStats[header] = {
+ //             count: numericValues.length,
+ //             mean,
+ //             median,
+ //             stdDev,
+ //             min: Math.min(...numericValues),
+ //             max: Math.max(...numericValues)
+ //           };
+ //         } else {
+ //           // Categorical column
+ //           columnStats[header] = {
+ //             count: values.length,
+ //             unique: new Set(values).size
+ //           };
+ //         }
+ //       });
+ //       setStatistics({ columnStats });
+ //     };
+ //     calculateStats();
+ //   }, [data, headers, dataVersion]);
  //   return (
  //     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
  //       <div className="max-w-7xl mx-auto p-6">
@@ -1977,7 +2497,6 @@ function Dashboard() {
  //           Statistical Analysis Dashboard
  //         </h1>
  //         {!data ? (
- //           // Upload panel
  //           <div className="bg-white rounded-lg shadow p-6">
  //             <h2 className="text-xl font-semibold mb-4">Upload CSV File</h2>
  //             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -2010,12 +2529,10 @@ function Dashboard() {
  //             </button>
  //           </div>
  //         ) : (
- //           // Results: actions, stats, preview, charts
  //           <div className="space-y-8">
- //             {/* Top actions */}
  //             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
  //               <p className="text-gray-600">
- //                 File: <strong>{file?.name}</strong>
+ //                 File: <strong>{file?.name}</strong> • Modified: <strong className="text-green-600">{dataVersion > 0 ? 'Yes' : 'No'}</strong>
  //               </p>
  //               <div className="space-x-2">
  //                 <button
@@ -2032,9 +2549,12 @@ function Dashboard() {
  //                 </button>
  //               </div>
  //             </div>
- //             {/* Statistics overview from backend */}
+ //             {/* Statistics Overview - Auto-updates */}
  //             <div className="bg-white rounded-lg shadow p-6">
- //               <h2 className="text-xl font-semibold mb-3">Statistics Overview</h2>
+ //               <h2 className="text-xl font-semibold mb-3">
+ //                 Statistics Overview 
+ //                 {dataVersion > 0 && <span className="text-sm text-green-600 ml-2">(Live Updated)</span>}
+ //               </h2>
  //               {statistics?.columnStats && Object.keys(statistics.columnStats).length > 0 ? (
  //                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
  //                   {Object.entries(statistics.columnStats).map(([column, stats]) => (
@@ -2046,43 +2566,33 @@ function Dashboard() {
  //                           <span className="font-medium">{stats.count}</span>
  //                         </div>
  //                         {"mean" in stats && (
- //                           <div className="flex justify-between">
- //                             <span className="text-gray-600">Mean:</span>
- //                             <span className="font-medium">
- //                               {Number(stats.mean)?.toFixed?.(2)}
- //                             </span>
- //                           </div>
+ //                           <>
+ //                             <div className="flex justify-between">
+ //                               <span className="text-gray-600">Mean:</span>
+ //                               <span className="font-medium">{Number(stats.mean)?.toFixed?.(2)}</span>
+ //                             </div>
+ //                             <div className="flex justify-between">
+ //                               <span className="text-gray-600">Median:</span>
+ //                               <span className="font-medium">{Number(stats.median)?.toFixed?.(2)}</span>
+ //                             </div>
+ //                             <div className="flex justify-between">
+ //                               <span className="text-gray-600">Std Dev:</span>
+ //                               <span className="font-medium">{Number(stats.stdDev)?.toFixed?.(2)}</span>
+ //                             </div>
+ //                             <div className="flex justify-between">
+ //                               <span className="text-gray-600">Min:</span>
+ //                               <span className="font-medium">{Number(stats.min)?.toFixed?.(2)}</span>
+ //                             </div>
+ //                             <div className="flex justify-between">
+ //                               <span className="text-gray-600">Max:</span>
+ //                               <span className="font-medium">{Number(stats.max)?.toFixed?.(2)}</span>
+ //                             </div>
+ //                           </>
  //                         )}
- //                         {"median" in stats && (
+ //                         {"unique" in stats && (
  //                           <div className="flex justify-between">
- //                             <span className="text-gray-600">Median:</span>
- //                             <span className="font-medium">
- //                               {Number(stats.median)?.toFixed?.(2)}
- //                             </span>
- //                           </div>
- //                         )}
- //                         {"stdDev" in stats && (
- //                           <div className="flex justify-between">
- //                             <span className="text-gray-600">Std Dev:</span>
- //                             <span className="font-medium">
- //                               {Number(stats.stdDev)?.toFixed?.(2)}
- //                             </span>
- //                           </div>
- //                         )}
- //                         {"min" in stats && (
- //                           <div className="flex justify-between">
- //                             <span className="text-gray-600">Min:</span>
- //                             <span className="font-medium">
- //                               {Number(stats.min)?.toFixed?.(2)}
- //                             </span>
- //                           </div>
- //                         )}
- //                         {"max" in stats && (
- //                           <div className="flex justify-between">
- //                             <span className="text-gray-600">Max:</span>
- //                             <span className="font-medium">
- //                               {Number(stats.max)?.toFixed?.(2)}
- //                             </span>
+ //                             <span className="text-gray-600">Unique:</span>
+ //                             <span className="font-medium">{stats.unique}</span>
  //                           </div>
  //                         )}
  //                       </div>
@@ -2090,16 +2600,33 @@ function Dashboard() {
  //                   ))}
  //                 </div>
  //               ) : (
- //                 <p className="text-sm text-gray-500">No numeric statistics available.</p>
+ //                 <p className="text-sm text-gray-500">No statistics available.</p>
  //               )}
  //             </div>
- //             {/* Data preview (first 10 rows) */}
+ //             {/* Editable Data Preview */}
  //             <div className="bg-white rounded-lg shadow p-6">
- //               <h2 className="text-xl font-semibold mb-3">Data Preview</h2>
+ //               <div className="flex justify-between items-center mb-3">
+ //                 <h2 className="text-xl font-semibold">Data Preview (Editable)</h2>
+ //                 {data.length > 20 && (
+ //                   <button
+ //                     onClick={() => setShowAllRows(!showAllRows)}
+ //                     className="text-sm text-indigo-600 hover:text-indigo-800 underline"
+ //                   >
+ //                     {showAllRows ? 'Show Less' : `Show All ${data.length} Rows`}
+ //                   </button>
+ //                 )}
+ //               </div>
+ //               <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded">
+ //                 <p className="text-sm text-blue-800">
+ //                   <strong>💡 Tip:</strong> Double-click any cell to edit. Press Enter to save or Escape to cancel. 
+ //                   Changes will automatically update the charts below.
+ //                 </p>
+ //               </div>
  //               <div className="overflow-x-auto">
  //                 <table className="min-w-full divide-y divide-gray-200">
- //                   <thead className="bg-gray-50">
+ //                   <thead className="bg-gray-50 sticky top-0">
  //                     <tr>
+ //                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
  //                       {headers.map((h) => (
  //                         <th
  //                           key={h}
@@ -2113,9 +2640,32 @@ function Dashboard() {
  //                   <tbody className="bg-white divide-y divide-gray-200">
  //                     {previewRows.map((row, idx) => (
  //                       <tr key={idx} className="hover:bg-gray-50">
+ //                         <td className="px-4 py-2 text-sm text-gray-500">{idx + 1}</td>
  //                         {headers.map((h) => (
- //                           <td key={h} className="px-4 py-2 text-sm text-gray-800">
- //                             {row[h]}
+ //                           <td
+ //                             key={h}
+ //                             className="px-4 py-2 text-sm text-gray-800 cursor-pointer hover:bg-blue-50"
+ //                             onDoubleClick={() => startEdit(idx, h, row[h])}
+ //                             title="Double-click to edit"
+ //                           >
+ //                             {editingCell?.rowIndex === idx && editingCell?.colName === h ? (
+ //                               <input
+ //                                 type="text"
+ //                                 value={editValue}
+ //                                 onChange={(e) => setEditValue(e.target.value)}
+ //                                 onBlur={() => saveEdit(idx, h)}
+ //                                 onKeyDown={(e) => {
+ //                                   if (e.key === "Enter") saveEdit(idx, h);
+ //                                   if (e.key === "Escape") cancelEdit();
+ //                                 }}
+ //                                 autoFocus
+ //                                 className="w-full px-2 py-1 border-2 border-indigo-500 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+ //                               />
+ //                             ) : (
+ //                               <span className={editingCell?.rowIndex === idx && editingCell?.colName === h ? 'font-bold' : ''}>
+ //                                 {row[h]}
+ //                               </span>
+ //                             )}
  //                           </td>
  //                         ))}
  //                       </tr>
@@ -2123,22 +2673,32 @@ function Dashboard() {
  //                   </tbody>
  //                 </table>
  //               </div>
- //               {data.length > 10 && (
- //                 <p className="mt-3 text-sm text-gray-500">Showing 10 of {data.length} rows</p>
- //               )}
+ //               <p className="mt-3 text-sm text-gray-500">
+ //                 Showing {previewRows.length} of {data.length} rows • Double-click any cell to edit
+ //               </p>
  //             </div>
- //             {/* Column distributions: each card lets user pick chart type (default = histogram) */}
+ //             {/* Interactive Column Distributions */}
  //             <div className="bg-white rounded-lg shadow p-6">
- //               <h2 className="text-xl font-semibold mb-4">Column Distributions</h2>
+ //               <h2 className="text-xl font-semibold mb-4">
+ //                 Column Distributions (Interactive)
+ //                 {dataVersion > 0 && <span className="text-sm text-green-600 ml-2">(Live Updated)</span>}
+ //               </h2>
+ //               <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+ //                 <p className="text-sm text-yellow-800">
+ //                   <strong>🎯 Interactive Charts:</strong> Click on bars, points, or pie slices to edit values. 
+ //                   All changes sync with the data table above in real-time.
+ //                 </p>
+ //               </div>
  //               {!isClient ? (
  //                 <p className="text-sm text-gray-500">Loading charts…</p>
  //               ) : (
  //                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
  //                   {headers.map((h) => (
  //                     <ColumnDistributionChart
- //                       key={h}
+ //                       key={`${h}-${dataVersion}`}
  //                       header={h}
  //                       values={data.map((row) => row[h])}
+ //                       onValueChange={handleChartValueChange(h)}
  //                     />
  //                   ))}
  //                 </div>
@@ -2150,304 +2710,6 @@ function Dashboard() {
  //     </div>
  //   );
  // }
- // // /**
- // //  * Dashboard page
- // //  * - Upload a CSV file to your Express server
- // //  * - Fetch server-calculated statistics
- // //  * - Parse the CSV on the client for preview and per‑column distributions
- // //  * - Render per‑column charts using ColumnDistributionChart (default = histogram)
- // //  *
- // //  * Notes:
- // //  * - Backend must be running on http://localhost:3000 (server/server.js)
- // //  * - Frontend (Next.js) typically runs on http://localhost:3001 in dev
- // //  * - Recharts must be installed: `yarn add recharts`
- // //  */
- // // import React, { useEffect, useMemo, useState } from "react";
- // // import ColumnDistributionChart from "@components/ColumnDistributionChart";
- // // // import ColumnDistributionChart from "../../components/ColumnDistributionChart";
- // // /** Minimal CSV splitter that respects double quotes.
- // //  * Splits a line by commas not enclosed in quotes.
- // //  */
- // // const csvSplit = (line) => line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
- // // /** Parse CSV text into [{col: value, ...}, ...]
- // //  * - Handles CRLF vs LF
- // //  * - Trims headers
- // //  * - Strips wrapping quotes in values
- // //  */
- // // function parseCSV(text) {
- // //   const lines = text.replace(/\r\n/g, "\n").split("\n").filter((l) => l.length > 0);
- // //   if (lines.length === 0) return { headers: [], rows: [] };
- // //   const headers = csvSplit(lines[0]).map((h) => h.replace(/^"(.*)"$/, "$1").trim());
- // //   const rows = lines.slice(1).map((line) => {
- // //     const parts = csvSplit(line).map((v) => v.replace(/^"(.*)"$/, "$1").trim());
- // //     const obj = {};
- // //     headers.forEach((h, i) => {
- // //       obj[h] = parts[i] ?? "";
- // //     });
- // //     return obj;
- // //   });
- // //   return { headers, rows };
- // // }
- // // export default function Dashboard() {
- // //   // Render charts only on client to avoid SSR mismatch with Recharts
- // //   const [isClient, setIsClient] = useState(false);
- // //   // Upload/analysis state
- // //   const [file, setFile] = useState(null);
- // //   const [data, setData] = useState(null);                 // parsed CSV rows (array of objects)
- // //   const [headers, setHeaders] = useState([]);             // column names
- // //   const [statistics, setStatistics] = useState(null);     // response from /stats/:filename
- // //   const [loading, setLoading] = useState(false);
- // //   const [error, setError] = useState(null);
- // //   useEffect(() => setIsClient(true), []);
- // //   // Handle local file selection (CSV only)
- // //   const handleFileChange = (e) => {
- // //     const selectedFile = e.target.files?.[0];
- // //     if (selectedFile && selectedFile.name.toLowerCase().endsWith(".csv")) {
- // //       setFile(selectedFile);
- // //       setError(null);
- // //     } else {
- // //       setError("Please select a valid .csv file");
- // //     }
- // //   };
- // //   // Upload to backend, fetch stats and the raw CSV, then parse
- // //   const handleUpload = async () => {
- // //     if (!file) return;
- // //     setLoading(true);
- // //     setError(null);
- // //     try {
- // //       // 1) Upload CSV to the Express server
- // //       const formData = new FormData();
- // //       formData.append("file", file);
- // //       const uploadRes = await fetch("http://localhost:3000/upload", {
- // //         method: "POST",
- // //         body: formData,
- // //       });
- // //       if (!uploadRes.ok) throw new Error("Upload failed");
- // //       const { filename } = await uploadRes.json();
- // //       // 2) Ask backend to compute statistics over the uploaded file
- // //       const statsRes = await fetch(`http://localhost:3000/stats/${filename}`);
- // //       if (!statsRes.ok) throw new Error("Failed to calculate statistics");
- // //       const statsData = await statsRes.json();
- // //       setStatistics(statsData);
- // //       // 3) Fetch the raw CSV back for client-side parsing (preview + charts)
- // //       const dataRes = await fetch(`http://localhost:3000/uploads/${filename}`);
- // //       if (!dataRes.ok) throw new Error("Failed to load uploaded file");
- // //       const csvText = await dataRes.text();
- // //       // 4) Parse CSV into rows + headers
- // //       const parsed = parseCSV(csvText);
- // //       setHeaders(parsed.headers);
- // //       setData(parsed.rows);
- // //     } catch (err) {
- // //       setError(err.message || "Unexpected error");
- // //     } finally {
- // //       setLoading(false);
- // //     }
- // //   };
- // //   // Reset the UI for a new analysis
- // //   const handleReset = () => {
- // //     setFile(null);
- // //     setData(null);
- // //     setHeaders([]);
- // //     setStatistics(null);
- // //     setError(null);
- // //   };
- // //   // Export current analysis to JSON (file name, stats, and first N rows)
- // //   const exportJSON = () => {
- // //     const exportData = {
- // //       fileName: file?.name,
- // //       statistics,
- // //       rows: data,
- // //     };
- // //     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
- // //     const url = URL.createObjectURL(blob);
- // //     const a = document.createElement("a");
- // //     a.href = url;
- // //     a.download = `analysis-${Date.now()}.json`;
- // //     a.click();
- // //     URL.revokeObjectURL(url);
- // //   };
- // //   // Convenience: preview the first 10 rows
- // //   const previewRows = useMemo(() => (data ? data.slice(0, 10) : []), [data]);
- // //   return (
- // //     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
- // //       <div className="max-w-7xl mx-auto p-6">
- // //         <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-6">
- // //           Statistical Analysis Dashboard
- // //         </h1>
- // //         {!data ? (
- // //           // Upload panel
- // //           <div className="bg-white rounded-lg shadow p-6">
- // //             <h2 className="text-xl font-semibold mb-4">Upload CSV File</h2>
- // //             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
- // //               <input
- // //                 id="file-upload"
- // //                 type="file"
- // //                 accept=".csv"
- // //                 onChange={handleFileChange}
- // //                 className="hidden"
- // //               />
- // //               <label htmlFor="file-upload" className="cursor-pointer inline-block">
- // //                 <div className="text-6xl mb-4">📊</div>
- // //                 <p className="text-lg text-gray-600 mb-1">
- // //                   {file ? file.name : "Click to select CSV file"}
- // //                 </p>
- // //                 <p className="text-sm text-gray-400">CSV files only</p>
- // //               </label>
- // //             </div>
- // //             {error && (
- // //               <div className="mt-4 p-3 rounded border border-red-200 bg-red-50 text-red-700 text-sm">
- // //                 {error}
- // //               </div>
- // //             )}
- // //             <button
- // //               onClick={handleUpload}
- // //               disabled={!file || loading}
- // //               className="mt-6 w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 transition"
- // //             >
- // //               {loading ? "Analyzing..." : "Analyze Data"}
- // //             </button>
- // //           </div>
- // //         ) : (
- // //           // Results: actions, stats, preview, charts
- // //           <div className="space-y-8">
- // //             {/* Top actions */}
- // //             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
- // //               <p className="text-gray-600">
- // //                 File: <strong>{file?.name}</strong>
- // //               </p>
- // //               <div className="space-x-2">
- // //                 <button
- // //                   onClick={exportJSON}
- // //                   className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition"
- // //                 >
- // //                   Export JSON
- // //                 </button>
- // //                 <button
- // //                   onClick={handleReset}
- // //                   className="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition"
- // //                 >
- // //                   New Analysis
- // //                 </button>
- // //               </div>
- // //             </div>
- // //             {/* Statistics overview from backend */}
- // //             <div className="bg-white rounded-lg shadow p-6">
- // //               <h2 className="text-xl font-semibold mb-3">Statistics Overview</h2>
- // //               {statistics?.columnStats && Object.keys(statistics.columnStats).length > 0 ? (
- // //                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
- // //                   {Object.entries(statistics.columnStats).map(([column, stats]) => (
- // //                     <div key={column} className="border rounded-lg p-4 bg-gray-50">
- // //                       <h3 className="font-semibold text-indigo-600 mb-2">{column}</h3>
- // //                       <div className="text-sm space-y-1">
- // //                         <div className="flex justify-between">
- // //                           <span className="text-gray-600">Count:</span>
- // //                           <span className="font-medium">{stats.count}</span>
- // //                         </div>
- // //                         {"mean" in stats && (
- // //                           <div className="flex justify-between">
- // //                             <span className="text-gray-600">Mean:</span>
- // //                             <span className="font-medium">
- // //                               {Number(stats.mean)?.toFixed?.(2)}
- // //                             </span>
- // //                           </div>
- // //                         )}
- // //                         {"median" in stats && (
- // //                           <div className="flex justify-between">
- // //                             <span className="text-gray-600">Median:</span>
- // //                             <span className="font-medium">
- // //                               {Number(stats.median)?.toFixed?.(2)}
- // //                             </span>
- // //                           </div>
- // //                         )}
- // //                         {"stdDev" in stats && (
- // //                           <div className="flex justify-between">
- // //                             <span className="text-gray-600">Std Dev:</span>
- // //                             <span className="font-medium">
- // //                               {Number(stats.stdDev)?.toFixed?.(2)}
- // //                             </span>
- // //                           </div>
- // //                         )}
- // //                         {"min" in stats && (
- // //                           <div className="flex justify-between">
- // //                             <span className="text-gray-600">Min:</span>
- // //                             <span className="font-medium">
- // //                               {Number(stats.min)?.toFixed?.(2)}
- // //                             </span>
- // //                           </div>
- // //                         )}
- // //                         {"max" in stats && (
- // //                           <div className="flex justify-between">
- // //                             <span className="text-gray-600">Max:</span>
- // //                             <span className="font-medium">
- // //                               {Number(stats.max)?.toFixed?.(2)}
- // //                             </span>
- // //                           </div>
- // //                         )}
- // //                       </div>
- // //                     </div>
- // //                   ))}
- // //                 </div>
- // //               ) : (
- // //                 <p className="text-sm text-gray-500">No numeric statistics available.</p>
- // //               )}
- // //             </div>
- // //             {/* Data preview (first 10 rows) */}
- // //             <div className="bg-white rounded-lg shadow p-6">
- // //               <h2 className="text-xl font-semibold mb-3">Data Preview</h2>
- // //               <div className="overflow-x-auto">
- // //                 <table className="min-w-full divide-y divide-gray-200">
- // //                   <thead className="bg-gray-50">
- // //                     <tr>
- // //                       {headers.map((h) => (
- // //                         <th
- // //                           key={h}
- // //                           className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
- // //                         >
- // //                           {h}
- // //                         </th>
- // //                       ))}
- // //                     </tr>
- // //                   </thead>
- // //                   <tbody className="bg-white divide-y divide-gray-200">
- // //                     {previewRows.map((row, idx) => (
- // //                       <tr key={idx} className="hover:bg-gray-50">
- // //                         {headers.map((h) => (
- // //                           <td key={h} className="px-4 py-2 text-sm text-gray-800">
- // //                             {row[h]}
- // //                           </td>
- // //                         ))}
- // //                       </tr>
- // //                     ))}
- // //                   </tbody>
- // //                 </table>
- // //               </div>
- // //               {data.length > 10 && (
- // //                 <p className="mt-3 text-sm text-gray-500">Showing 10 of {data.length} rows</p>
- // //               )}
- // //             </div>
- // //             {/* Column distributions: each card lets user pick chart type (default = histogram) */}
- // //             <div className="bg-white rounded-lg shadow p-6">
- // //               <h2 className="text-xl font-semibold mb-4">Column Distributions</h2>
- // //               {!isClient ? (
- // //                 <p className="text-sm text-gray-500">Loading charts…</p>
- // //               ) : (
- // //                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
- // //                   {headers.map((h) => (
- // //                     <ColumnDistributionChart
- // //                       key={h}
- // //                       header={h}
- // //                       values={data.map((row) => row[h])}
- // //                     />
- // //                   ))}
- // //                 </div>
- // //               )}
- // //             </div>
- // //           </div>
- // //         )}
- // //       </div>
- // //     </div>
- // //   );
- // // }
 }),
 "[externals]/next/dist/shared/lib/no-fallback-error.external.js [external] (next/dist/shared/lib/no-fallback-error.external.js, cjs)", ((__turbopack_context__, module, exports) => {
 
