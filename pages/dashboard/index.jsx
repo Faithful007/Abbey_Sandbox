@@ -297,7 +297,7 @@ export default function Dashboard() {
       let y = 20;
       pdf.setFontSize(20);
       pdf.setTextColor(99,102,241);
-      pdf.text('Statistical Analysis Report', pageWidth/2, y, { align:'center' });
+      pdf.text('BEC Analysis Report', pageWidth/2, y, { align:'center' });
       y += 10;
       pdf.setFontSize(10);
       pdf.setTextColor(100);
@@ -307,7 +307,7 @@ export default function Dashboard() {
       pdf.text(`Generated: ${new Date().toLocaleString()}`, 20, y); y+=10;
       pdf.setFontSize(14);
       pdf.setTextColor(0);
-      pdf.text('Statistics Overview', 20, y); y+=8;
+      pdf.text('Analysis Overview', 20, y); y+=8;
       if (statistics?.columnStats) {
         const statsData = [];
         Object.entries(statistics.columnStats).forEach(([col, st])=>{
@@ -374,7 +374,7 @@ export default function Dashboard() {
     try {
       const wb = XLSX.utils.book_new();
       const summary = [
-        ['Statistical Analysis Report'],
+        ['BEC Model Analysis Report'],
         [],
         ['File Name', file?.name],
         ['File Type', fileType?.toUpperCase()],
@@ -496,7 +496,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-7xl mx-auto p-6" ref={dashboardRef}>
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-6">Statistical Analysis Dashboard</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-6">BEC Model Analysis Dashboard</h1>
         {!data ? (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Upload Data File</h2>
@@ -547,7 +547,7 @@ export default function Dashboard() {
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-3">Statistics Overview {dataVersion>0 && <span className="text-sm text-green-600 ml-2">(Live Updated)</span>}</h2>
+              <h2 className="text-xl font-semibold mb-3">Analysis Overview {dataVersion>0 && <span className="text-sm text-green-600 ml-2">(Live Updated)</span>}</h2>
               {statistics?.columnStats && Object.keys(statistics.columnStats).length>0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(statistics.columnStats).map(([col, st])=>(

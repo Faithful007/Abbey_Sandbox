@@ -2542,7 +2542,7 @@ function Dashboard() {
             let y = 20;
             pdf.setFontSize(20);
             pdf.setTextColor(99, 102, 241);
-            pdf.text('Statistical Analysis Report', pageWidth / 2, y, {
+            pdf.text('BEC Analysis Report', pageWidth / 2, y, {
                 align: 'center'
             });
             y += 10;
@@ -2558,7 +2558,7 @@ function Dashboard() {
             y += 10;
             pdf.setFontSize(14);
             pdf.setTextColor(0);
-            pdf.text('Statistics Overview', 20, y);
+            pdf.text('Analysis Overview', 20, y);
             y += 8;
             if (statistics?.columnStats) {
                 const statsData = [];
@@ -2690,7 +2690,7 @@ function Dashboard() {
             const wb = __TURBOPACK__imported__module__$5b$externals$5d2f$xlsx__$5b$external$5d$__$28$xlsx$2c$__cjs$29$__["utils"].book_new();
             const summary = [
                 [
-                    'Statistical Analysis Report'
+                    'BEC Model Analysis Report'
                 ],
                 [],
                 [
@@ -2902,7 +2902,7 @@ function Dashboard() {
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("h1", {
                     className: "text-3xl sm:text-4xl font-bold text-gray-800 mb-6",
-                    children: "Statistical Analysis Dashboard"
+                    children: "BEC Model Analysis Dashboard"
                 }, void 0, false, {
                     fileName: "[project]/pages/dashboard/index.jsx",
                     lineNumber: 499,
@@ -3250,14 +3250,14 @@ function Dashboard() {
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("h2", {
                                     className: "text-xl font-semibold mb-3",
                                     children: [
-                                        "Statistics Overview ",
+                                        "Analysis Overview ",
                                         dataVersion > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("span", {
                                             className: "text-sm text-green-600 ml-2",
                                             children: "(Live Updated)"
                                         }, void 0, false, {
                                             fileName: "[project]/pages/dashboard/index.jsx",
                                             lineNumber: 550,
-                                            columnNumber: 96
+                                            columnNumber: 94
                                         }, this)
                                     ]
                                 }, void 0, true, {
