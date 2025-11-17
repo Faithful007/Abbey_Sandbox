@@ -1,719 +1,295 @@
-// Express server for handling file uploads and data analysis
+// Express API with JWT auth: registration (18–90 age), login, admin-only lists/search/stats/update/delete, file utilities
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import XLSX from 'xlsx';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
-const express = require('express');
-const multer = require('multer');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
-const XLSX = require('xlsx'); // Library for reading Excel files
+// Load .env from server directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
+
+import {
+  initializeDatabase,
+  insertRegistration,
+  getAllRegistrations,
+  getRegistrationById,
+  getRegistrationByEmail,
+  updateRegistration,
+  deleteRegistration,
+  searchRegistrations,
+  getRegistrationStats,
+  getRegistrationsPaginated,
+  getUserByEmail
+} from './db.js';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-insecure-secret';
 
-// Enable CORS for cross-origin requests from frontend
+// Middleware
 app.use(cors());
-// Parse JSON request bodies
 app.use(express.json());
-// Serve uploaded files statically
-app.use('/uploads', express.static('uploads'));
+app.use(express.urlencoded({ extended: true }));
 
-// Create uploads directory if it doesn't exist
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
+// Ensure uploads dir
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-// Configure multer storage for file uploads
+// Multer for uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => {
-    // Generate unique filename with timestamp and random number
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`)
+});
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Init DB
+initializeDatabase().catch(err => {
+  console.error('DB init failed:', err);
+  process.exit(1);
 });
 
-// Configure multer with file type validation
-const upload = multer({ 
-  storage,
-  fileFilter: (req, file, cb) => {
-    // Only allow specific file types
-    const allowedTypes = ['.csv', '.json', '.xlsx', '.xls', '.txt'];
-    const ext = path.extname(file.originalname).toLowerCase();
-    
-    console.log('File upload attempted:', file.originalname, 'Extension:', ext);
-    
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`Invalid file type. Only CSV, JSON, Excel (.xlsx, .xls), and TXT files are allowed. Got: ${ext}`));
+// ---------- Auth helpers ----------
+function auth(requiredRole) {
+  return (req, res, next) => {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = decoded;
+      if (requiredRole && decoded.role !== requiredRole) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+      next();
+    } catch {
+      return res.status(401).json({ error: 'Invalid token' });
     }
-  }
-});
-
-/**
- * Parse different file types into a common array of objects format
- * @param {string} filePath - Path to the uploaded file
- * @returns {Array} - Array of data objects
- */
-function parseFile(filePath) {
-  const ext = path.extname(filePath).toLowerCase();
-  
-  console.log('Parsing file:', filePath, 'Type:', ext);
-
-  if (ext === '.json') {
-    // Parse JSON file
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const jsonData = JSON.parse(fileContent);
-    // Handle different JSON structures
-    if (Array.isArray(jsonData)) {
-      return jsonData;
-    } else if (jsonData.data && Array.isArray(jsonData.data)) {
-      return jsonData.data;
-    } else if (jsonData.rows && Array.isArray(jsonData.rows)) {
-      return jsonData.rows;
-    }
-    // Wrap single object in array
-    return [jsonData];
-  } else if (ext === '.xlsx' || ext === '.xls') {
-    // Parse Excel file using XLSX library
-    const workbook = XLSX.readFile(filePath);
-    const sheetName = workbook.SheetNames[0]; // Use first sheet
-    const sheet = workbook.Sheets[sheetName];
-    return XLSX.utils.sheet_to_json(sheet);
-  } else if (ext === '.csv' || ext === '.txt') {
-    // Parse CSV or TXT file
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const lines = fileContent.split('\n').filter(line => line.trim().length > 0);
-    if (lines.length === 0) return [];
-    
-    // Detect delimiter (comma for CSV, tab for TXT, or fallback to comma)
-    const delimiter = ext === '.csv' ? ',' : /\t/.test(lines[0]) ? '\t' : ',';
-    // Extract headers from first line and clean quotes
-    const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"(.*)"$/, '$1'));
-    
-    // Parse data rows
-    return lines.slice(1).map(line => {
-      const values = line.split(delimiter).map(v => v.trim().replace(/^"(.*)"$/, '$1'));
-      const obj = {};
-      headers.forEach((header, i) => {
-        obj[header] = values[i] || '';
-      });
-      return obj;
-    });
-  }
-  
-  throw new Error(`Unsupported file format: ${ext}`);
+  };
 }
 
-/**
- * POST /upload
- * Handle file upload
- * Returns: { filename, originalName, fileType }
- */
-app.post('/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
-  
-  console.log('File uploaded successfully:', req.file.filename);
-  
-  res.json({ 
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    fileType: path.extname(req.file.originalname).toLowerCase()
-  });
-});
-
-/**
- * GET /data/:filename
- * Retrieve and parse uploaded file data
- * Returns: { data: Array, fileType: string }
- */
-app.get('/data/:filename', (req, res) => {
+// ---------- Login (issues JWT) ----------
+app.post('/api/login', async (req, res) => {
   try {
-    const filePath = path.join(__dirname, 'uploads', req.params.filename);
-    
-    console.log('Data requested for:', req.params.filename);
-    
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-    
-    const data = parseFile(filePath);
-    res.json({ data, fileType: path.extname(filePath).toLowerCase() });
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+
+    const user = await getUserByEmail(email);
+    if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) return res.status(401).json({ error: 'Invalid email or password' });
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '2h' }
+    );
+    res.json({ message: 'Login successful', token, role: user.role });
   } catch (err) {
-    console.error('Error parsing file:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
-/**
- * GET /stats/:filename
- * Calculate statistics for each column in the file
- * Returns: { columnStats: Object }
- */
-app.get('/stats/:filename', (req, res) => {
+// ---------- Registrations ----------
+app.post('/api/registrations', async (req, res) => {
   try {
-    const filePath = path.join(__dirname, 'uploads', req.params.filename);
-    
-    console.log('Statistics requested for:', req.params.filename);
-    
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found' });
+    const {
+      first_name, last_name, age, email, mobile, address, unit_in_BEC,
+      password, confirm_password, role
+    } = req.body || {};
+
+    if (!first_name || !last_name || !age || !email || !mobile || !address || !unit_in_BEC || !password || !confirm_password) {
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const data = parseFile(filePath);
-    if (data.length === 0) {
-      return res.json({ columnStats: {} });
+    const nAge = parseInt(age, 10);
+    if (isNaN(nAge) || nAge < 18 || nAge > 90) {
+      return res.status(400).json({ error: 'Age must be between 18 and 90' });
     }
 
-    // Get column names from first row
-    const headers = Object.keys(data[0]);
-    const columnStats = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email format' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password !== confirm_password) return res.status(400).json({ error: 'Passwords do not match' });
 
-    headers.forEach(header => {
-      // Filter out null, undefined, and empty values
-      const values = data.map(row => row[header]).filter(v => v !== null && v !== undefined && v !== '');
-      // Extract numeric values
-      const numericValues = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
+    const existing = await getRegistrationByEmail(email);
+    if (existing) return res.status(400).json({ error: 'Email already registered' });
 
-      // Check if column is numeric (more than 50% numeric values)
-      if (numericValues.length > values.length * 0.5) {
-        // Calculate numeric statistics
-        const sorted = [...numericValues].sort((a, b) => a - b);
-        const sum = numericValues.reduce((acc, val) => acc + val, 0);
-        const mean = sum / numericValues.length;
-        const median = sorted[Math.floor(sorted.length / 2)];
-        const variance = numericValues.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / numericValues.length;
-        const stdDev = Math.sqrt(variance);
+    const hash = await bcrypt.hash(password, 10);
 
-        columnStats[header] = {
-          count: numericValues.length,
-          mean,
-          median,
-          stdDev,
-          min: Math.min(...numericValues),
-          max: Math.max(...numericValues),
-        };
-      } else {
-        // Calculate categorical statistics
-        columnStats[header] = {
-          count: values.length,
-          unique: new Set(values).size,
-        };
+    let newRole = 'user';
+    try {
+      const hdr = req.headers.authorization || '';
+      const t = hdr.startsWith('Bearer ') ? hdr.slice(7) : null;
+      if (t) {
+        const dec = jwt.verify(t, JWT_SECRET);
+        if (dec?.role === 'admin' && role === 'admin') newRole = 'admin';
       }
+    } catch { /* remain 'user' */ }
+
+    const result = await insertRegistration({
+      first_name, last_name, age: nAge, email, mobile, address, unit_in_BEC,
+      password: hash, confirm_password: hash, role: newRole
     });
 
+    res.status(201).json({ message: 'Registration successful', id: result.id });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// Admin-only: list
+app.get('/api/registrations', auth('admin'), async (req, res) => {
+  try {
+    const page = req.query.page ? parseInt(req.query.page, 10) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+    if (page && limit) return res.json(await getRegistrationsPaginated(page, limit));
+    res.json({ data: await getAllRegistrations() });
+  } catch (err) {
+    console.error('Fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch registrations' });
+  }
+});
+
+app.get('/api/registrations/:id', auth('admin'), async (req, res) => {
+  try {
+    const row = await getRegistrationById(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Registration not found' });
+    res.json({ data: row });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch registration' });
+  }
+});
+
+app.put('/api/registrations/:id', auth('admin'), async (req, res) => {
+  try {
+    const result = await updateRegistration(req.params.id, req.body);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Registration not found' });
+    res.json({ message: 'Registration updated' });
+  } catch {
+    res.status(500).json({ error: 'Update failed' });
+  }
+});
+
+app.delete('/api/registrations/:id', auth('admin'), async (req, res) => {
+  try {
+    const result = await deleteRegistration(req.params.id);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Registration not found' });
+    res.json({ message: 'Registration deleted' });
+  } catch {
+    res.status(500).json({ error: 'Delete failed' });
+  }
+});
+
+app.get('/api/registrations/search/:query', auth('admin'), async (req, res) => {
+  try {
+    res.json({ data: await searchRegistrations(req.params.query) });
+  } catch {
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
+app.get('/api/registrations-stats', auth('admin'), async (_req, res) => {
+  try {
+    res.json({ data: await getRegistrationStats() });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// ---------- File utilities ----------
+app.post('/upload', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  res.json({ message: 'File uploaded', filename: req.file.filename, fileType: path.extname(req.file.originalname) });
+});
+
+app.get('/data/:filename', (req, res) => {
+  const filePath = path.join(uploadsDir, req.params.filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+  try {
+    const ext = path.extname(filePath).toLowerCase();
+    let parsed;
+    if (ext === '.csv' || ext === '.txt') {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n').filter(l => l.trim());
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      parsed = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        return headers.reduce((o, h, i) => (o[h] = values[i] || '', o), {});
+      });
+    } else if (ext === '.json') {
+      const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      parsed = Array.isArray(json) ? json : json.data || [json];
+    } else if (ext === '.xlsx' || ext === '.xls') {
+      const wb = XLSX.readFile(filePath);
+      parsed = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    } else return res.status(400).json({ error: 'Unsupported file type' });
+    res.json({ data: parsed });
+  } catch (err) {
+    console.error('Parse error:', err);
+    res.status(500).json({ error: 'Failed to parse file' });
+  }
+});
+
+app.get('/stats/:filename', (req, res) => {
+  const filePath = path.join(uploadsDir, req.params.filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+  try {
+    const ext = path.extname(filePath).toLowerCase();
+    let data = [];
+    if (ext === '.csv' || ext === '.txt') {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n').filter(l => l.trim());
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      data = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        return headers.reduce((o, h, i) => (o[h] = values[i] || '', o), {});
+      });
+    } else if (ext === '.json') {
+      const json = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      data = Array.isArray(json) ? json : [json];
+    } else if (ext === '.xlsx' || ext === '.xls') {
+      const wb = XLSX.readFile(filePath);
+      data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    }
+    const columnStats = {};
+    if (data.length) {
+      const headers = Object.keys(data[0]);
+      headers.forEach(h => {
+        const values = data.map(r => r[h]).filter(v => v != null && v !== '');
+        const nums = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
+        if (nums.length > values.length * 0.5) {
+          const sorted = [...nums].sort((a, b) => a - b);
+          const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+          columnStats[h] = {
+            count: nums.length,
+            mean,
+            median: sorted[Math.floor(sorted.length / 2)],
+            stdDev: Math.sqrt(nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0) / nums.length),
+            min: Math.min(...nums),
+            max: Math.max(...nums)
+          };
+        } else {
+          columnStats[h] = { count: values.length, unique: new Set(values).size };
+        }
+      });
+    }
     res.json({ columnStats });
   } catch (err) {
-    console.error('Error calculating statistics:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Stats error:', err);
+    res.status(500).json({ error: 'Failed to calculate statistics' });
   }
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(err.status || 500).json({ 
-    error: err.message || 'Internal server error' 
-  });
-});
+app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Supported file types: CSV, JSON, Excel (.xlsx, .xls), TXT`);
-});
-
-// // Express server for handling file uploads and data analysis
-
-// const express = require('express');
-// const multer = require('multer');
-// const cors = require('cors');
-// const path = require('path');
-// const fs = require('fs');
-// const XLSX = require('xlsx'); // Library for reading Excel files
-
-// const app = express();
-// const PORT = 3000;
-
-// // Enable CORS for cross-origin requests from frontend
-// app.use(cors());
-// // Parse JSON request bodies
-// app.use(express.json());
-// // Serve uploaded files statically
-// app.use('/uploads', express.static('uploads'));
-
-// // Create uploads directory if it doesn't exist
-// if (!fs.existsSync('uploads')) {
-//   fs.mkdirSync('uploads');
-// }
-
-// // Configure multer storage for file uploads
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => cb(null, 'uploads/'),
-//   filename: (req, file, cb) => {
-//     // Generate unique filename with timestamp and random number
-//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-//     cb(null, uniqueSuffix + path.extname(file.originalname));
-//   }
-// });
-
-// // Configure multer with file type validation
-// const upload = multer({ 
-//   storage,
-//   fileFilter: (req, file, cb) => {
-//     // Only allow specific file types
-//     const allowedTypes = ['.csv', '.json', '.xlsx', '.xls', '.txt'];
-//     const ext = path.extname(file.originalname).toLowerCase();
-//     if (allowedTypes.includes(ext)) {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Invalid file type. Only CSV, JSON, Excel, and TXT files are allowed.'));
-//     }
-//   }
-// });
-
-// /**
-//  * Parse different file types into a common array of objects format
-//  * @param {string} filePath - Path to the uploaded file
-//  * @returns {Array} - Array of data objects
-//  */
-// function parseFile(filePath) {
-//   const ext = path.extname(filePath).toLowerCase();
-//   const fileContent = fs.readFileSync(filePath, 'utf-8');
-
-//   if (ext === '.json') {
-//     // Parse JSON file
-//     const jsonData = JSON.parse(fileContent);
-//     // Handle different JSON structures
-//     if (Array.isArray(jsonData)) {
-//       return jsonData;
-//     } else if (jsonData.data && Array.isArray(jsonData.data)) {
-//       return jsonData.data;
-//     } else if (jsonData.rows && Array.isArray(jsonData.rows)) {
-//       return jsonData.rows;
-//     }
-//     // Wrap single object in array
-//     return [jsonData];
-//   } else if (ext === '.xlsx' || ext === '.xls') {
-//     // Parse Excel file using XLSX library
-//     const workbook = XLSX.readFile(filePath);
-//     const sheetName = workbook.SheetNames[0]; // Use first sheet
-//     const sheet = workbook.Sheets[sheetName];
-//     return XLSX.utils.sheet_to_json(sheet);
-//   } else if (ext === '.csv' || ext === '.txt') {
-//     // Parse CSV or TXT file
-//     const lines = fileContent.split('\n').filter(line => line.trim().length > 0);
-//     if (lines.length === 0) return [];
-    
-//     // Detect delimiter (comma for CSV, tab for TXT, or fallback to comma)
-//     const delimiter = ext === '.csv' ? ',' : /\t/.test(lines[0]) ? '\t' : ',';
-//     // Extract headers from first line and clean quotes
-//     const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"(.*)"$/, '$1'));
-    
-//     // Parse data rows
-//     return lines.slice(1).map(line => {
-//       const values = line.split(delimiter).map(v => v.trim().replace(/^"(.*)"$/, '$1'));
-//       const obj = {};
-//       headers.forEach((header, i) => {
-//         obj[header] = values[i] || '';
-//       });
-//       return obj;
-//     });
-//   }
-  
-//   throw new Error('Unsupported file format');
-// }
-
-// /**
-//  * POST /upload
-//  * Handle file upload
-//  * Returns: { filename, originalName, fileType }
-//  */
-// app.post('/upload', upload.single('file'), (req, res) => {
-//   if (!req.file) {
-//     return res.status(400).json({ error: 'No file uploaded' });
-//   }
-//   res.json({ 
-//     filename: req.file.filename,
-//     originalName: req.file.originalname,
-//     fileType: path.extname(req.file.originalname).toLowerCase()
-//   });
-// });
-
-// /**
-//  * GET /data/:filename
-//  * Retrieve and parse uploaded file data
-//  * Returns: { data: Array, fileType: string }
-//  */
-// app.get('/data/:filename', (req, res) => {
-//   try {
-//     const filePath = path.join(__dirname, 'uploads', req.params.filename);
-//     if (!fs.existsSync(filePath)) {
-//       return res.status(404).json({ error: 'File not found' });
-//     }
-    
-//     const data = parseFile(filePath);
-//     res.json({ data, fileType: path.extname(filePath).toLowerCase() });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
-// /**
-//  * GET /stats/:filename
-//  * Calculate statistics for each column in the file
-//  * Returns: { columnStats: Object }
-//  */
-// app.get('/stats/:filename', (req, res) => {
-//   try {
-//     const filePath = path.join(__dirname, 'uploads', req.params.filename);
-//     if (!fs.existsSync(filePath)) {
-//       return res.status(404).json({ error: 'File not found' });
-//     }
-
-//     const data = parseFile(filePath);
-//     if (data.length === 0) {
-//       return res.json({ columnStats: {} });
-//     }
-
-//     // Get column names from first row
-//     const headers = Object.keys(data[0]);
-//     const columnStats = {};
-
-//     headers.forEach(header => {
-//       // Filter out null, undefined, and empty values
-//       const values = data.map(row => row[header]).filter(v => v !== null && v !== undefined && v !== '');
-//       // Extract numeric values
-//       const numericValues = values.filter(v => !isNaN(parseFloat(v))).map(v => parseFloat(v));
-
-//       // Check if column is numeric (more than 50% numeric values)
-//       if (numericValues.length > values.length * 0.5) {
-//         // Calculate numeric statistics
-//         const sorted = [...numericValues].sort((a, b) => a - b);
-//         const sum = numericValues.reduce((acc, val) => acc + val, 0);
-//         const mean = sum / numericValues.length;
-//         const median = sorted[Math.floor(sorted.length / 2)];
-//         const variance = numericValues.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / numericValues.length;
-//         const stdDev = Math.sqrt(variance);
-
-//         columnStats[header] = {
-//           count: numericValues.length,
-//           mean,
-//           median,
-//           stdDev,
-//           min: Math.min(...numericValues),
-//           max: Math.max(...numericValues),
-//         };
-//       } else {
-//         // Calculate categorical statistics
-//         columnStats[header] = {
-//           count: values.length,
-//           unique: new Set(values).size,
-//         };
-//       }
-//     });
-
-//     res.json({ columnStats });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
-// // Start the server
-// app.listen(PORT, () => {
-//   console.log(`Server running on http://localhost:${PORT}`);
-// });
-
-// // const express = require('express');
-// // const cors = require('cors');
-// // const helmet = require('helmet');
-// // const morgan = require('morgan');
-// // const multer = require('multer');
-// // const path = require('path');
-// // const fs = require('fs').promises;
-// // const { calculateAdvancedStatistics } = require('./stats');
-
-// // // Initialize Express app
-// // const app = express();
-
-// // // Configure multer for file uploads
-// // const upload = multer({ 
-// //     dest: 'uploads/',
-// //     fileFilter: (req, file, cb) => {
-// //         if (file.mimetype === 'text/csv') {
-// //             cb(null, true);
-// //         } else {
-// //             cb(new Error('Only CSV files are allowed'));
-// //         }
-// //     }
-// // });
-
-// // // Middleware
-// // app.use(cors());
-// // app.use(helmet());
-// // app.use(morgan('dev'));
-// // app.use(express.json());
-
-// // // Serve static files from uploads directory
-// // app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-// // // Health check endpoint
-// // app.get('/health', (req, res) => {
-// //     res.status(200).json({ status: 'ok' });
-// // });
-
-// // // File upload endpoint
-// // app.post('/upload', upload.single('file'), (req, res) => {
-// //     if (!req.file) {
-// //         return res.status(400).json({ error: 'No file uploaded' });
-// //     }
-// //     res.json({ 
-// //         ok: true, 
-// //         filename: req.file.filename,
-// //         originalname: req.file.originalname 
-// //     });
-// // });
-
-// // // Stats calculation endpoint
-// // app.get('/stats/:filename', async (req, res) => {
-// //     try {
-// //         const filePath = path.join(__dirname, '../uploads', req.params.filename);
-// //         const fileContent = await fs.readFile(filePath, 'utf-8');
-        
-// //         // Parse CSV content
-// //         const rows = fileContent.trim().split('\n');
-// //         const headers = rows[0].split(',');
-// //         const data = rows.slice(1).map(row => {
-// //             const values = row.split(',');
-// //             return headers.reduce((obj, header, i) => {
-// //                 obj[header.trim()] = values[i]?.trim();
-// //                 return obj;
-// //             }, {});
-// //         });
-
-// //         const stats = calculateAdvancedStatistics(data);
-// //         res.json(stats);
-// //     } catch (error) {
-// //         res.status(500).json({ 
-// //             error: error.message,
-// //             details: 'Error processing file or calculating statistics'
-// //         });
-// //     }
-// // });
-
-// // // Error handling middleware
-// // app.use((err, req, res, next) => {
-// //     console.error(err.stack);
-// //     res.status(500).json({ 
-// //         error: err.message,
-// //         details: 'Internal server error'
-// //     });
-// // });
-
-// // // Export for testing
-// // module.exports = app;
-
-// // // Start server if running directly
-// // if (require.main === module) {
-// //     const PORT = process.env.PORT || 3000;
-// //     app.listen(PORT, () => {
-// //         console.log(`Server running on port ${PORT}`);
-// //     });
-// // }
-
-// // // const express = require('express');
-// // // const cors = require('cors');
-// // // const helmet = require('helmet');
-// // // const morgan = require('morgan');
-// // // const multer = require('multer');
-// // // const path = require('path');
-// // // const fs = require('fs').promises;
-// // // const { calculateAdvancedStatistics } = require('./stats');
-
-// // // // Initialize Express app
-// // // const app = express();
-
-// // // // Configure multer for file uploads
-// // // const upload = multer({ 
-// // //     dest: 'uploads/',
-// // //     fileFilter: (req, file, cb) => {
-// // //         if (file.mimetype === 'text/csv') {
-// // //             cb(null, true);
-// // //         } else {
-// // //             cb(new Error('Only CSV files are allowed'));
-// // //         }
-// // //     }
-// // // });
-
-// // // // Middleware
-// // // app.use(cors());
-// // // app.use(helmet());
-// // // app.use(morgan('dev'));
-// // // app.use(express.json());
-
-// // // // Health check endpoint
-// // // app.get('/health', (req, res) => {
-// // //     res.status(200).json({ status: 'ok' });
-// // // });
-
-// // // // File upload endpoint
-// // // app.post('/upload', upload.single('file'), (req, res) => {
-// // //     if (!req.file) {
-// // //         return res.status(400).json({ error: 'No file uploaded' });
-// // //     }
-// // //     res.json({ 
-// // //         ok: true, 
-// // //         filename: req.file.filename,
-// // //         originalname: req.file.originalname 
-// // //     });
-// // // });
-
-// // // // Stats calculation endpoint
-// // // app.get('/stats/:filename', async (req, res) => {
-// // //     try {
-// // //         const filePath = path.join(__dirname, '../uploads', req.params.filename);
-// // //         const fileContent = await fs.readFile(filePath, 'utf-8');
-        
-// // //         // Parse CSV content
-// // //         const rows = fileContent.trim().split('\n');
-// // //         const headers = rows[0].split(',');
-// // //         const data = rows.slice(1).map(row => {
-// // //             const values = row.split(',');
-// // //             return headers.reduce((obj, header, i) => {
-// // //                 obj[header] = values[i];
-// // //                 return obj;
-// // //             }, {});
-// // //         });
-
-// // //         const stats = calculateAdvancedStatistics(data);
-// // //         res.json(stats);
-// // //     } catch (error) {
-// // //         res.status(500).json({ 
-// // //             error: error.message,
-// // //             details: 'Error processing file or calculating statistics'
-// // //         });
-// // //     }
-// // // });
-
-// // // // Error handling middleware
-// // // app.use((err, req, res, next) => {
-// // //     console.error(err.stack);
-// // //     res.status(500).json({ 
-// // //         error: err.message,
-// // //         details: 'Internal server error'
-// // //     });
-// // // });
-
-// // // // Export for testing
-// // // module.exports = app;
-
-// // // // Start server if running directly
-// // // if (require.main === module) {
-// // //     const PORT = process.env.PORT || 3000;
-// // //     app.listen(PORT, () => {
-// // //         console.log(`Server running on port ${PORT}`);
-// // //     });
-// // // }
-
-// // // // const express = require('express');
-// // // // const cors = require('cors');
-// // // // const helmet = require('helmet');
-// // // // const morgan = require('morgan');
-// // // // const multer = require('multer');
-// // // // const path = require('path');
-// // // // const fs = require('fs').promises;
-
-// // // // const app = express();
-// // // // const upload = multer({ dest: 'uploads/' });
-
-// // // // // Middleware
-// // // // app.use(cors());
-// // // // app.use(helmet());
-// // // // app.use(morgan('dev'));
-// // // // app.use(express.json());
-
-// // // // // Health check endpoint
-// // // // app.get('/health', (req, res) => {
-// // // //     res.status(200).json({ status: 'ok' });
-// // // // });
-
-// // // // // File upload endpoint
-// // // // app.post('/upload', upload.single('file'), (req, res) => {
-// // // //     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-// // // //     res.json({ ok: true, filename: req.file.filename });
-// // // // });
-
-// // // // // Stats endpoint
-// // // // app.get('/stats/:filename', async (req, res) => {
-// // // //     try {
-// // // //         const filePath = path.join(__dirname, '../uploads', req.params.filename);
-// // // //         const fileContent = await fs.readFile(filePath, 'utf-8');
-        
-// // // //         const rows = fileContent.trim().split('\n');
-// // // //         const headers = rows[0].split(',');
-// // // //         const data = rows.slice(1).map(row => {
-// // // //             const values = row.split(',');
-// // // //             return headers.reduce((obj, header, i) => {
-// // // //                 obj[header] = values[i];
-// // // //                 return obj;
-// // // //             }, {});
-// // // //         });
-
-// // // //         const stats = calculateAdvancedStatistics(data);
-// // // //         res.json({ columnStats: stats });
-// // // //     } catch (error) {
-// // // //         res.status(500).json({ error: error.message });
-// // // //     }
-// // // // });
-
-// // // // module.exports = app;
-
-// // // // // const express = require('express');
-// // // // // const cors = require('cors');
-// // // // // const helmet = require('helmet');
-// // // // // const morgan = require('morgan');
-// // // // // const multer = require('multer');
-// // // // // const upload = multer({ dest: 'uploads/' }); // Specify the uploads directory
-
-// // // // // const app = express();
-
-// // // // // // Middleware
-// // // // // app.use(cors());
-// // // // // app.use(helmet());
-// // // // // app.use(morgan('dev'));
-// // // // // app.use(express.json());
-
-// // // // // // Health check endpoint
-// // // // // app.get('/health', (req, res) => {
-// // // // //     res.status(200).json({ status: 'ok' });
-// // // // // });
-
-// // // // // app.post('/upload', upload.single('file'), (req, res) => {
-// // // // //     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-// // // // //     // you can process req.file.path / req.file.originalname here
-// // // // //     res.json({ ok: true, filename: req.file.filename, originalname: req.file.originalname });
-// // // // // });
-
-// // // // // // For testing, we need to export the app
-// // // // // module.exports = app;
-
-// // // // // // Start server only if running directly
-// // // // // if (require.main === module) {
-// // // // //     const PORT = process.env.PORT || 3000;
-// // // // //     app.listen(PORT, () => {
-// // // // //         console.log(`Server running on port ${PORT}`);
-// // // // //     });
-// // // // // }
-
-// // // // // // filepath: c:\Users\USER\sourcecodes\tests\server\server.js
-
-// // // // // app.post('/upload', upload.single('file'), (req, res) => {
-// // // // //     if (!req.file) {
-// // // // //         return res.status(400).json({ error: 'No file uploaded' });
-// // // // //     }
-// // // // //     res.json({ ok: true });
-// // // // // });
-
-// // // // // module.exports = app;
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
