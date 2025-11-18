@@ -290,6 +290,63 @@ app.get('/stats/:filename', (req, res) => {
   }
 });
 
+// Forgot password endpoint
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const user = await getUserByEmail(email);
+    if (!user) {
+      // Don't reveal if email exists for security
+      return res.json({ message: 'If email exists, reset instructions will be sent' });
+    }
+
+    // Generate reset token (expires in 1 hour)
+    const resetToken = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // TODO: Send email with reset link (use nodemailer or similar)
+    // For now, just log it
+    console.log(`Reset link: http://localhost:3001/reset-password?token=${resetToken}`);
+
+    res.json({ message: 'Password reset instructions sent to email' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// Reset password endpoint
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const hash = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      'UPDATE regNew SET password=?, confirm_password=? WHERE id=?',
+      [hash, hash, decoded.id]
+    );
+
+    res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+});
+
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

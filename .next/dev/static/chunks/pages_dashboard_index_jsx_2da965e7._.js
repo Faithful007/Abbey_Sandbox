@@ -1,12 +1,13 @@
 (globalThis.TURBOPACK_CHUNK_LISTS || (globalThis.TURBOPACK_CHUNK_LISTS = [])).push({
     script: typeof document === "object" ? document.currentScript : undefined,
     chunks: [
-  "static/chunks/node_modules_731148ff._.js",
-  "static/chunks/[root-of-the-server]__980878f5._.js",
+  "static/chunks/node_modules_5b4a0549._.js",
+  "static/chunks/[root-of-the-server]__16bfcf78._.js",
   "static/chunks/node_modules_next_dist_compiled_693c7264._.js",
   "static/chunks/node_modules_next_dist_shared_lib_49f863e2._.js",
   "static/chunks/node_modules_next_dist_client_d0aa886c._.js",
   "static/chunks/node_modules_next_dist_a1eb637b._.js",
+  "static/chunks/node_modules_next_router_104fab1c.js",
   "static/chunks/node_modules_react-dom_4411d9bd._.js",
   "static/chunks/node_modules_recharts_es6_util_93a3c576._.js",
   "static/chunks/node_modules_recharts_es6_state_8e74724b._.js",
