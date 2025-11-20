@@ -1,13 +1,24 @@
 (globalThis.TURBOPACK_CHUNK_LISTS || (globalThis.TURBOPACK_CHUNK_LISTS = [])).push({
     script: typeof document === "object" ? document.currentScript : undefined,
     chunks: [
-  "static/chunks/node_modules_next_dist_compiled_f6a70607._.js",
+  "static/chunks/node_modules_5b4a0549._.js",
+  "static/chunks/[root-of-the-server]__16bfcf78._.js",
+  "static/chunks/node_modules_next_dist_compiled_693c7264._.js",
   "static/chunks/node_modules_next_dist_shared_lib_49f863e2._.js",
   "static/chunks/node_modules_next_dist_client_d0aa886c._.js",
   "static/chunks/node_modules_next_dist_a1eb637b._.js",
+  "static/chunks/node_modules_next_router_104fab1c.js",
   "static/chunks/node_modules_react-dom_4411d9bd._.js",
-  "static/chunks/node_modules_f1be3ba2._.js",
-  "static/chunks/[root-of-the-server]__1339861f._.js"
+  "static/chunks/node_modules_recharts_es6_util_93a3c576._.js",
+  "static/chunks/node_modules_recharts_es6_state_8e74724b._.js",
+  "static/chunks/node_modules_recharts_es6_component_b3f65c50._.js",
+  "static/chunks/node_modules_recharts_es6_cartesian_296ff1bf._.js",
+  "static/chunks/node_modules_recharts_es6_53a86750._.js",
+  "static/chunks/node_modules_pako_dist_pako_esm_mjs_ce1ea67d._.js",
+  "static/chunks/node_modules_jspdf_dist_jspdf_es_min_32a1d50f.js",
+  "static/chunks/node_modules_html2canvas_dist_html2canvas_c5f8e195.js",
+  "static/chunks/node_modules_xlsx_xlsx_mjs_6addffd6._.js",
+  "static/chunks/node_modules_f26d05c5._.js"
 ],
     source: "entry"
 });
