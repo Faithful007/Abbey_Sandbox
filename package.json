@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "homepage": "https://Faithful007.github.io/Abbey_Sandbox",
   "scripts": {
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll",
@@ -11,7 +12,9 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
-    "dev:server": "node server/server.js"
+    "dev:server": "node server/server.js",
+    "predeploy": "yarn build",
+    "deploy": "gh-pages -d out -b gh-pages --force"
   },
   "keywords": [],
   "author": "",
@@ -42,6 +45,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
+    "gh-pages": "^6.3.0",
     "jest": "^30.2.0",
     "postcss": "^8.4.31",
     "supertest": "^7.1.4",
@@ -55,4 +59,3 @@
     ]
   }
 }
-
