@@ -1,0 +1,4 @@
+Name	Age 	Height (cm)
+Kim Jiho	25	175
+Sohee lee	32	180
+Jihae ho	18	173

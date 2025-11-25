@@ -14,6 +14,7 @@ coverage/
 # React Native / mobile
 .expo/
 .next/
+out/
 android/app/build/
 ios/Pods/
 # misc
@@ -55,3 +56,4 @@ tmp/
 .Trashes
 ehthumbs.db
 Thumbs.db
+package-lock.json
