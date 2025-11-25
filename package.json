@@ -9,10 +9,11 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watchAll",
     "test:coverage": "jest --coverage",
-    "dev": "next dev -p 3001",
+    "dev": "concurrently \"yarn dev:client\" \"yarn dev:server\"",
+    "dev:client": "next dev -p 3001",
+    "dev:server": "node server/server.js",
     "build": "next build",
     "start": "next start",
-    "dev:server": "node server/server.js",
     "predeploy": "yarn build",
     "deploy": "gh-pages -d out -b gh-pages --force"
   },
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.2.1",
     "gh-pages": "^6.3.0",
     "jest": "^30.2.0",
     "postcss": "^8.4.31",
