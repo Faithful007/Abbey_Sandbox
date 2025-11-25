@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 34, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/USER/sourcecodes/tests/pages/dashboard/index.jsx"],"sourcesContent":["import { useRouter } from 'next/router';\r\n\r\nexport default function Home() {\r\n  const router = useRouter();\r\n\r\n  return (\r\n    <div className=\"container mx-auto p-4\">\r\n      <h1 className=\"text-2xl font-bold mb-4\">Statistical Analysis Dashboard</h1>\r\n      <button\r\n        onClick={() => router.push('/dashboard')}\r\n        className=\"bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded\"\r\n      >\r\n        Go to Dashboard\r\n      </button>\r\n    </div>\r\n  );\r\n}"],"names":[],"mappings":";;;;;AAAA;;;AAEe,SAAS;IACtB,MAAM,SAAS,IAAA,oIAAS;IAExB,qBACE,qKAAC;QAAI,WAAU;;0BACb,qKAAC;gBAAG,WAAU;0BAA0B;;;;;;0BACxC,qKAAC;gBACC,SAAS,IAAM,OAAO,IAAI,CAAC;gBAC3B,WAAU;0BACX;;;;;;;;;;;;AAKP","debugId":null}}]
-}
