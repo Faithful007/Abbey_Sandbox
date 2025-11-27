@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: abbey-sandbox-backend
+    env: node
+    plan: free
+    buildCommand: yarn install
+    startCommand: node server/server.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DB_HOST
+        value: YOUR_PLANETSCALE_HOST
+      - key: DB_USER
+        value: YOUR_PLANETSCALE_USERNAME
+      - key: DB_PASSWORD
+        value: YOUR_PLANETSCALE_PASSWORD
+      - key: DB_NAME
+        value: becDB1
+      - key: DB_PORT
+        value: 3306
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://faithful007.github.io/Abbey_Sandbox,https://<your-vercel-domain>,http://localhost:3001
